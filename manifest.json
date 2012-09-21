@@ -1,0 +1,17 @@
+{
+  "name": "History Map",
+  "version": "1.0",
+  "manifest_version": 2,
+  "description": "Organizes the history by domain",
+  "content_scripts": [{
+    "matches": ["*://*/*"],
+    "js": ["log.js", "jquery-1.6.1.min.js"],
+    "run_at": "document_idle"
+  }],
+  "browser_action": {
+    "default_icon": "icon.png"
+  },
+  "permissions": [
+    "tabs", "history", "<all_urls>"
+  ]
+}
