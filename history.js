@@ -1,3 +1,14 @@
+function formatAMPM(date) {
+  var hours = date.getHours();
+  var minutes = date.getMinutes();
+  var ampm = hours >= 12 ? 'PM' : 'AM';
+  var hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  minutes = minutes < 10 ? '0'+minutes : minutes;
+  strTime = hours + ':' + minutes + ' ' + ampm;
+  return strTime;
+}
+
 function getURLDomain(url) {
     return url.split('/')[2];
 }
@@ -45,10 +56,21 @@ chrome.history.search({
           this.querySelector('ul').classList.toggle('hidden');
       });
       for( var j = 0; j < history['history'][group].sites.length; j++ ){
-        site = history['history'][group].sites[j];
-        siteEl = document.createElement('li');
-        siteEl.appendChild(document.createTextNode(site.title));
-        siteList.appendChild(siteEl);
+        var site = history['history'][group].sites[j];
+        var siteEntry = document.createElement('div');
+        siteEntry.className = 'entry';
+
+        var time = document.createElement('div');
+        time.className = 'time';
+        time.innerHTML = formatAMPM( new Date(site.lastVisitTime) );
+
+        var siteEl = document.createElement('span');
+        siteEl.innerHTML = site.title;
+
+        siteEntry.appendChild(time);
+        siteEntry.appendChild(siteEl);
+
+        siteList.appendChild(siteEntry);
       }
       domainEl.appendChild(siteList);
       domainList.appendChild(domainEl);

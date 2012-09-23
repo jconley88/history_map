@@ -21,3 +21,16 @@ img {
 .domainName * {
     cursor: default;
 }
+
+.entry {
+    list-style: none;
+}
+
+.entry .time {
+  color: rgb(151, 156, 160);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 80px;
+  display: inline-block;
+}
