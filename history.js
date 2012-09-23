@@ -64,10 +64,21 @@ chrome.history.search({
         time.className = 'time';
         time.innerHTML = formatAMPM( new Date(site.lastVisitTime) );
 
-        var siteEl = document.createElement('span');
-        siteEl.innerHTML = site.title;
+//        var favicon = document.createElement('img');
+//        favicon.setAttribute('src', "chrome://favicon/" + site.url);
+
+        var siteEl = document.createElement('div');
+        siteEl.className = "title";
+        siteEl.setAttribute('style', "background-image: url(\"chrome://favicon/" + site.url + "\");");
+        title = document.createElement('a');
+        title.setAttribute('href', site.url);
+        title.setAttribute('title', site.title);
+        titleText = document.createTextNode(site.title);
+        title.appendChild(titleText);
+        siteEl.appendChild(title);
 
         siteEntry.appendChild(time);
+//        siteEntry.appendChild(favicon);
         siteEntry.appendChild(siteEl);
 
         siteList.appendChild(siteEntry);

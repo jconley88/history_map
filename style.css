@@ -24,13 +24,29 @@ img {
 
 .entry {
     list-style: none;
+    white-space: nowrap;
+}
+
+.entry {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.entry * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .entry .time {
   color: rgb(151, 156, 160);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   width: 80px;
   display: inline-block;
+}
+
+.entry .title {
+  display: inline-block;
+  -webkit-padding-start: 20px;
+  background-position-y: 1px;
+  background-repeat: no-repeat;
 }
