@@ -72,8 +72,14 @@ chrome.history.search({
         title = document.createElement('a');
         title.setAttribute('href', site.url);
         title.setAttribute('title', site.title);
-        titleText = document.createTextNode(site.title);
-        title.appendChild(titleText);
+        var titleText;
+        if (site.title == '') {
+          titleText = site.url;
+        } else {
+          titleText = site.title;
+        }
+        titleTextNode = document.createTextNode(titleText);
+        title.appendChild(titleTextNode);
         siteEl.appendChild(title);
 
         siteEntry.appendChild(time);
