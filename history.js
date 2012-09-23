@@ -1,15 +1,3 @@
-console.log('hello');
-//referrer = chrome.extension.getBackgroundPage().getReferrer();
-////location = referrer
-//
-////h = chrome.extension.getBackgroundPage().getHistory();
-//document.write("<ul>");
-////for (var i = 0; i < referrer.length; i++) {
-//    document.write("<li>" + referrer + "</li>");
-////};
-//document.write("</ul>");
-
-//window.location = "http://www.google.com";
 function getURLDomain(url) {
     return url.split('/')[2];
 }
@@ -49,8 +37,13 @@ chrome.history.search({
     for( var i = 0; i < history['order'].length; i++){
       var group = history['order'][i];
       domainEl = document.createElement('li');
+      domainEl.className = "domainName";
       domainEl.appendChild(document.createTextNode(group));
       siteList = document.createElement('ul');
+      siteList.className = "hidden";
+      domainEl.addEventListener('click', function(){
+          this.querySelector('ul').classList.toggle('hidden');
+      });
       for( var j = 0; j < history['history'][group].sites.length; j++ ){
         site = history['history'][group].sites[j];
         siteEl = document.createElement('li');
