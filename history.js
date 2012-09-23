@@ -16,10 +16,12 @@ function getURLDomain(url) {
 
 function getGroupedHistory(historyItems){
   groupedHistory = {};
+  groupedHistoryOrder = [];
   for(var i = 0; i < historyItems.length; i++) {
     var domain = getURLDomain(historyItems[i].url);
         //TODO link to other visits
         if(!groupedHistory.hasOwnProperty(domain)){
+          groupedHistoryOrder.push(domain);
           groupedHistory[domain] = {
             lastAccessed : '',
             title : 'domain',
@@ -27,9 +29,8 @@ function getGroupedHistory(historyItems){
         }
         groupedHistory[domain].sites.push(historyItems[i]);
         //TODO insert sites by date
-        //TODO order domains by date (create an array with references to these objs as well)
   }
-  return groupedHistory;
+  return { order: groupedHistoryOrder, history: groupedHistory };
 }
 
 var microsecondsPerYear = 1000 * 60 * 60 * 24 * 365;
@@ -43,24 +44,21 @@ chrome.history.search({
     'startTime': oneYearAgo
   },
   function(historyItems) {
-    groupedHistory = getGroupedHistory(historyItems);
+    history = getGroupedHistory(historyItems);
     domainList = document.getElementById('domain_list');
-    //TODO create a document fragment before inserting
-    //TODO paginate results
-    for( var group in groupedHistory) {
-      if( groupedHistory.hasOwnProperty(group)){
-        domainEl = document.createElement('li');
-        domainEl.appendChild(document.createTextNode(group));
-        siteList = document.createElement('ul');
-        for( var i = 0; i < groupedHistory[group].sites.length; i++ ){
-          site = groupedHistory[group].sites[i];
-          siteEl = document.createElement('li');
-          siteEl.appendChild(document.createTextNode(site.title));
-          siteList.appendChild(siteEl);
-        }
-        domainEl.appendChild(siteList);
-        domainList.appendChild(domainEl);
+    for( var i = 0; i < history['order'].length; i++){
+      var group = history['order'][i];
+      domainEl = document.createElement('li');
+      domainEl.appendChild(document.createTextNode(group));
+      siteList = document.createElement('ul');
+      for( var j = 0; j < history['history'][group].sites.length; j++ ){
+        site = history['history'][group].sites[j];
+        siteEl = document.createElement('li');
+        siteEl.appendChild(document.createTextNode(site.title));
+        siteList.appendChild(siteEl);
       }
+      domainEl.appendChild(siteList);
+      domainList.appendChild(domainEl);
     }
   }
 );
