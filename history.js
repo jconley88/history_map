@@ -66,9 +66,6 @@ chrome.history.search({
         time.className = 'time';
         time.innerHTML = formatAMPM( new Date(site.lastVisitTime) );
 
-//        var favicon = document.createElement('img');
-//        favicon.setAttribute('src', "chrome://favicon/" + site.url);
-
         var siteEl = document.createElement('div');
         siteEl.className = "title";
         siteEl.setAttribute('style', "background-image: url(\"chrome://favicon/" + site.url + "\");");
@@ -80,7 +77,6 @@ chrome.history.search({
         siteEl.appendChild(title);
 
         siteEntry.appendChild(time);
-//        siteEntry.appendChild(favicon);
         siteEntry.appendChild(siteEl);
 
         siteList.appendChild(siteEntry);
