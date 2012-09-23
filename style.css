@@ -15,22 +15,18 @@ img {
     display: none;
 }
 
-.domainName {
+.domainName span{
     cursor: pointer;
 }
 .domainName * {
-    cursor: default;
+    cursor: auto;
 }
 
 .entry {
     list-style: none;
     white-space: nowrap;
-}
-
-.entry {
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
 }
 .entry * {
     overflow: hidden;

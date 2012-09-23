@@ -49,11 +49,13 @@ chrome.history.search({
       var group = history['order'][i];
       domainEl = document.createElement('li');
       domainEl.className = "domainName";
-      domainEl.appendChild(document.createTextNode(group));
+      span = document.createElement('span');
+      span.appendChild(document.createTextNode(group));
+      domainEl.appendChild(span);
       siteList = document.createElement('ul');
       siteList.className = "hidden";
-      domainEl.addEventListener('click', function(){
-          this.querySelector('ul').classList.toggle('hidden');
+      span.addEventListener('click', function(){
+          this.parentNode.querySelector('ul').classList.toggle('hidden');
       });
       for( var j = 0; j < history['history'][group].sites.length; j++ ){
         var site = history['history'][group].sites[j];
