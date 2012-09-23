@@ -34,7 +34,7 @@ img {
     white-space: nowrap;
 }
 
-.entry .time {
+.time {
   color: rgb(151, 156, 160);
   width: 80px;
   display: inline-block;

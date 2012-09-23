@@ -22,7 +22,7 @@ function getGroupedHistory(historyItems){
         if(!groupedHistory.hasOwnProperty(domain)){
           groupedHistoryOrder.push(domain);
           groupedHistory[domain] = {
-            lastAccessed : '',
+            lastVisitTime : historyItems[i].lastVisitTime,
             title : 'domain',
             sites : [] };
         }
@@ -49,9 +49,17 @@ chrome.history.search({
       var group = history['order'][i];
       domainEl = document.createElement('li');
       domainEl.className = "domainName";
+
+      var domainTime = document.createElement('div');
+      domainTime.className = 'time';
+      domainTime.innerHTML = formatAMPM( new Date(history['history'][group]['lastVisitTime']) );
+
       span = document.createElement('span');
       span.appendChild(document.createTextNode(group));
+
+      domainEl.appendChild(domainTime);
       domainEl.appendChild(span);
+
       siteList = document.createElement('ul');
       siteList.className = "hidden";
       span.addEventListener('click', function(){
