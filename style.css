@@ -47,6 +47,19 @@ img {
   background-repeat: no-repeat;
 }
 
+.entry .title a {
+  color: rgb(48, 57, 66);
+  text-decoration: none;
+}
+.entry .title a:hover {
+  text-decoration: underline;
+}
+
 .dateHeader {
   white-space: nowrap;
+}
+
+ul.siteList{
+  margin-top: 15px;
+  margin-bottom: 15px;
 }

@@ -104,7 +104,7 @@ function createSiteElement(site) {
 
 function createSiteList() {
   var siteList = document.createElement('ul');
-  siteList.className = "hidden";
+  siteList.className = "siteList hidden";
   return siteList;
 }
 
