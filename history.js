@@ -32,11 +32,78 @@ function getGroupedHistory(historyItems){
   return { order: groupedHistoryOrder, history: groupedHistory };
 }
 
+function createTimeElement(date){
+  var time = document.createElement('div');
+  time.className = 'time';
+  time.innerHTML = formatAMPM( date );
+  return time;
+}
+
+function createDomainListItem(){
+  var entry = document.createElement('li');
+  entry.className = "domainName";
+  return entry;
+}
+
+function createDomainTitle(titleText){
+  var title = document.createElement('span');
+  title.appendChild(document.createTextNode(titleText));
+  title.addEventListener('click', function(){
+    this.parentNode.querySelector('ul').classList.toggle('hidden');
+  });
+  return title;
+}
+
 var microsecondsPerYear = 1000 * 60 * 60 * 24 * 365;
 var oneYearAgo = (new Date).getTime() - microsecondsPerYear;
 
 //Ideally we want ALL history, but the function is buggy and I couldn't
 //get it to return all available history
+function createSiteContainer() {
+  var siteEntry = document.createElement('div');
+  siteEntry.className = 'entry';
+  return siteEntry;
+}
+function createSiteTitle(site) {
+  var siteEl = document.createElement('div');
+  siteEl.className = "title";
+  siteEl.setAttribute('style', "background-image: url(\"chrome://favicon/" + site.url + "\");");
+  title = document.createElement('a');
+  title.setAttribute('href', site.url);
+  title.setAttribute('title', site.title);
+  var titleText;
+  if (site.title == '') {
+    titleText = site.url;
+  } else {
+    titleText = site.title;
+  }
+  titleTextNode = document.createTextNode(titleText);
+  title.appendChild(titleTextNode);
+  siteEl.appendChild(title);
+  return siteEl;
+}
+function createDomainElement(domainLastVisit, domainName) {
+  var domainTime = createTimeElement(domainLastVisit);
+  var domainTitle = createDomainTitle(domainName);
+  var domainEntry = createDomainListItem();
+  domainEntry.appendChild(domainTime);
+  domainEntry.appendChild(domainTitle);
+  return domainEntry;
+}
+function createSiteElement(site) {
+  var time = createTimeElement(new Date(site.lastVisitTime));
+  var siteEl = createSiteTitle(site);
+  var siteEntry = createSiteContainer();
+  siteEntry.appendChild(time);
+  siteEntry.appendChild(siteEl);
+  return siteEntry;
+}
+
+function createSiteList() {
+  var siteList = document.createElement('ul');
+  siteList.className = "hidden";
+  return siteList;
+}
 chrome.history.search({
     'maxResults': 0,
     'text': '',
@@ -45,58 +112,23 @@ chrome.history.search({
   function(historyItems) {
     history = getGroupedHistory(historyItems);
     domainList = document.getElementById('domain_list');
-    for( var i = 0; i < history['order'].length; i++){
-      var group = history['order'][i];
-      domainEl = document.createElement('li');
-      domainEl.className = "domainName";
+    for( var i = 0; i < history['order'].length; i++) {
+      var domainName = history['order'][i];
+      var domainLastVisit = new Date(history['history'][domainName]['lastVisitTime']);
+      var sites = history['history'][domainName].sites;
 
-      var domainTime = document.createElement('div');
-      domainTime.className = 'time';
-      domainTime.innerHTML = formatAMPM( new Date(history['history'][group]['lastVisitTime']) );
+      var domainElement = createDomainElement(domainLastVisit, domainName);
+      var siteList = createSiteList();
 
-      span = document.createElement('span');
-      span.appendChild(document.createTextNode(group));
+      for (var j = 0; j < sites.length; j++) {
+        var site = sites[j];
 
-      domainEl.appendChild(domainTime);
-      domainEl.appendChild(span);
-
-      siteList = document.createElement('ul');
-      siteList.className = "hidden";
-      span.addEventListener('click', function(){
-          this.parentNode.querySelector('ul').classList.toggle('hidden');
-      });
-      for( var j = 0; j < history['history'][group].sites.length; j++ ){
-        var site = history['history'][group].sites[j];
-        var siteEntry = document.createElement('div');
-        siteEntry.className = 'entry';
-
-        var time = document.createElement('div');
-        time.className = 'time';
-        time.innerHTML = formatAMPM( new Date(site.lastVisitTime) );
-
-        var siteEl = document.createElement('div');
-        siteEl.className = "title";
-        siteEl.setAttribute('style', "background-image: url(\"chrome://favicon/" + site.url + "\");");
-        title = document.createElement('a');
-        title.setAttribute('href', site.url);
-        title.setAttribute('title', site.title);
-        var titleText;
-        if (site.title == '') {
-          titleText = site.url;
-        } else {
-          titleText = site.title;
-        }
-        titleTextNode = document.createTextNode(titleText);
-        title.appendChild(titleTextNode);
-        siteEl.appendChild(title);
-
-        siteEntry.appendChild(time);
-        siteEntry.appendChild(siteEl);
-
-        siteList.appendChild(siteEntry);
+        var siteElement = createSiteElement(site);
+        siteList.appendChild(siteElement);
       }
-      domainEl.appendChild(siteList);
-      domainList.appendChild(domainEl);
+
+      domainElement.appendChild(siteList);
+      domainList.appendChild(domainElement);
     }
   }
 );
