@@ -46,3 +46,7 @@ img {
   background-position-y: 1px;
   background-repeat: no-repeat;
 }
+
+.dateHeader {
+  white-space: nowrap;
+}

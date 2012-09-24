@@ -1,3 +1,6 @@
+var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
 function formatAMPM(date) {
   var hours = date.getHours();
   var minutes = date.getMinutes();
@@ -104,6 +107,19 @@ function createSiteList() {
   siteList.className = "hidden";
   return siteList;
 }
+
+function createDateHeader(date) {
+  dateHeader = document.createElement('h3');
+  dateHeader.className = "dateHeader";
+
+  var today = '';
+  if(date.toDateString() == (new Date().toDateString())){
+    today = 'Today - '
+  }
+  dateHeader.innerHTML = today + days[date.getDay()] + ", " + months[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
+  return dateHeader;
+}
+
 chrome.history.search({
     'maxResults': 0,
     'text': '',
@@ -112,10 +128,17 @@ chrome.history.search({
   function(historyItems) {
     history = getGroupedHistory(historyItems);
     domainList = document.getElementById('domain_list');
+    previousDomainDateString = null;
     for( var i = 0; i < history['order'].length; i++) {
       var domainName = history['order'][i];
       var domainLastVisit = new Date(history['history'][domainName]['lastVisitTime']);
       var sites = history['history'][domainName].sites;
+
+      if( i == 0 || (domainLastVisit.toDateString() != previousDomainDateString) ) {
+        dateHeader = createDateHeader(domainLastVisit);
+        domainList.appendChild(dateHeader);
+        previousDomainDateString = domainLastVisit.toDateString();
+      }
 
       var domainElement = createDomainElement(domainLastVisit, domainName);
       var siteList = createSiteList();
