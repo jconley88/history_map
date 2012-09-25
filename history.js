@@ -50,6 +50,7 @@ function createDomainListItem(){
 
 function createDomainTitle(titleText){
   var title = document.createElement('span');
+  title.className = "domainTitle";
   title.appendChild(document.createTextNode(titleText));
   title.addEventListener('click', function(){
     this.parentNode.querySelector('ul').classList.toggle('hidden');
@@ -127,7 +128,7 @@ chrome.history.search({
   },
   function(historyItems) {
     var history = getGroupedHistory(historyItems);
-    var domainList = document.getElementById('domain_list');
+    var domainList = document.getElementById('domainList');
     var previousDomainDateString = null;
     for( var i = 0; i < history['order'].length; i++) {
       var domainName = history['order'][i];
