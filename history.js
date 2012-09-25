@@ -13,7 +13,7 @@ function formatAMPM(date) {
 }
 
 function getURLDomain(url) {
-    return url.split('/')[2];
+    return url.split('/')[2].replace(/^www\./, '');
 }
 
 function getGroupedHistory(historyItems){
