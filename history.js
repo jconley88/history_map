@@ -48,10 +48,12 @@ function createDomainListItem(){
   return entry;
 }
 
-function createDomainTitle(titleText){
+function createDomainTitle(domainName, firstSite){
   var title = document.createElement('span');
-  title.className = "domainTitle";
-  title.appendChild(document.createTextNode(titleText));
+  title.className = "title";
+  title.setAttribute('style', "background-image: url(\"chrome://favicon/" + firstSite.url + "\");");
+
+  title.appendChild(document.createTextNode(domainName));
   title.addEventListener('click', function(){
     this.parentNode.querySelector('ul').classList.toggle('hidden');
   });
@@ -86,9 +88,9 @@ function createSiteTitle(site) {
   siteEl.appendChild(title);
   return siteEl;
 }
-function createDomainElement(domainLastVisit, domainName) {
+function createDomainElement(domainLastVisit, domainName, firstSite) {
   var domainTime = createTimeElement(domainLastVisit);
-  var domainTitle = createDomainTitle(domainName);
+  var domainTitle = createDomainTitle(domainName, firstSite);
   var domainEntry = createDomainListItem();
   domainEntry.appendChild(domainTime);
   domainEntry.appendChild(domainTitle);
@@ -141,7 +143,7 @@ chrome.history.search({
         previousDomainDateString = domainLastVisit.toDateString();
       }
 
-      var domainElement = createDomainElement(domainLastVisit, domainName);
+      var domainElement = createDomainElement(domainLastVisit, domainName, sites[0]);
       var siteList = createSiteList();
 
       var previousSiteDateString = null;
