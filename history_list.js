@@ -1,13 +1,13 @@
 var Visit = Class.create({
-	initialize: function(visitItem, historyItem){
-		this.visitItem = visitItem;
-		this.historyItem = historyItem;
+  initialize: function(visitItem, historyItem){
+    this.visitItem = visitItem;
+    this.historyItem = historyItem;
 
     this.visitId = visitItem.visitId;
     this.visitTime = new Date(visitItem.visitTime);
-  	this.url = historyItem.url;
-  	this.title = historyItem.title;
-	},
+    this.url = historyItem.url;
+    this.title = historyItem.title;
+  },
 
   setChildren: function(children){
     this.children = children;
@@ -17,10 +17,18 @@ var Visit = Class.create({
 var SessionedHistory = Class.create({
   initialize: function(historyItems, callback){
     this.baseVisits= [];
+    this.indexedReferringVisits = {};
+    this.callback = callback;
+    this._setVisits(historyItems);
+  },
+  each: function(callback){
+    for(var i = 0; i < this.baseVisits.length; i++){
+      callback(this.baseVisits[i]);
+    }
+  },
+  _setVisits: function(historyItems){
     var visits = {};
-    var indexedReferringVisits= {};
     var indexedHistoryItems = {};
-    var last_url = null;
     var getVisitsCallbackCount = 0;
     var that = this;
     for(var i = 0; i < historyItems.length; i++) {
@@ -39,46 +47,30 @@ var SessionedHistory = Class.create({
               that.baseVisits.push(new Visit(visitItem, indexedHistoryItems[this.args[0].url]));
               break;
             default:
-              if( indexedReferringVisits[visitItem.referringVisitId] ){
-                indexedReferringVisits[visitItem.referringVisitId].push(new Visit(visitItem, indexedHistoryItems[this.args[0].url]));
+              if( that.indexedReferringVisits[visitItem.referringVisitId] ){
+                that.indexedReferringVisits[visitItem.referringVisitId].push(new Visit(visitItem, indexedHistoryItems[this.args[0].url]));
               } else {
-                indexedReferringVisits[visitItem.referringVisitId] = [new Visit(visitItem, indexedHistoryItems[this.args[0].url])];
+                that.indexedReferringVisits[visitItem.referringVisitId] = [new Visit(visitItem, indexedHistoryItems[this.args[0].url])];
               }
           }
         }
-
         if(getVisitsCallbackCount == historyItems.length){
-          //TODO update to sort this by the time of the most recently accessed page in this session
-          that.baseVisits = that.baseVisits.sort(function(a,b){
-            if (a.visitTime < b.visitTime) {
-              return 1;
-            } else if (a.visitTime == b.visitTime){
-              return 0;
-            } else {
-              return -1;
-            }
-          });
-          that._setBaseVisitChildren.apply(that, [indexedReferringVisits, callback]);
+          that._setBaseVisitChildren.apply(that);
         }
       });
-
     }
   },
-  each: function(callback){
-     for(var i = 0; i < this.baseVisits.length; i++){
-        callback(this.baseVisits[i]);
-     }
-  },
-  _setBaseVisitChildren: function(indexedReferringVisits, callback){
+  _setBaseVisitChildren: function(){
+    this._sortBaseVisits();
     //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
-   for(var i = 0; i < this.baseVisits.length; i ++){
-        var base = this.baseVisits[i];
-        this._getChildren(base, indexedReferringVisits);
+    for(var i = 0; i < this.baseVisits.length; i ++){
+      var base = this.baseVisits[i];
+      this._getChildren(base, this.indexedReferringVisits);
     }
-    callback(this);
+    this.callback(this);
   },
   _getChildren: function(base, visits) {
-   var children = visits[base.visitId];
+    var children = visits[base.visitId];
     if(children){
       for(var i = 0; i < children.length; i++) {
         var child = children[i];
@@ -88,5 +80,17 @@ var SessionedHistory = Class.create({
     } else {
       base.children = [];
     }
- }
+  },
+  _sortBaseVisits: function(){
+    //TODO update to sort this by the time of the most recently accessed page in this session
+    this.baseVisits = this.baseVisits.sort(function(a,b){
+      if (a.visitTime < b.visitTime) {
+        return 1;
+      } else if (a.visitTime == b.visitTime){
+        return 0;
+      } else {
+        return -1;
+      }
+    });
+  }
 });
