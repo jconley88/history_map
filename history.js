@@ -39,19 +39,6 @@ function initializeOrAddToArray(collection, item) {
 
 }
 
-function getChildren(base, visits) {
-  var children = visits[base.visitId];
-   if(children){
-     for(var i = 0; i < children.length; i++) {
-       var child = children[i];
-       base.children = children; //TODO move this below 'getChildren' and out of the for loop
-       getChildren(child, visits);
-     }
-   } else {
-     base.children = [];
-   }
-}
-
 function displayHistory( baseVisits){
 
 
