@@ -29,13 +29,14 @@ var SessionedHistory = Class.create({
   _setVisits: function(historyItems){
     var visits = {};
     var indexedHistoryItems = {};
-    var getVisitsCallbackCount = 0;
+    var visitsCallbackCount = 0;
     var that = this;
     for(var i = 0; i < historyItems.length; i++) {
       var historyItem = historyItems[i];
       indexedHistoryItems[historyItem.url] = historyItem;
       chrome.history.getVisits({ url: historyItem.url}, function(visitItems){
-        getVisitsCallbackCount++;
+        var url = this.args[0].url;
+        visitsCallbackCount++;
         for(var j = 0; j < visitItems.length; j++) {
           var visitItem = visitItems[j];
           visits[visitItem.visitId] = visitItem;
@@ -44,17 +45,14 @@ var SessionedHistory = Class.create({
             case 'typed':
             case 'start_page':
             case 'keyword':
-              that.baseVisits.push(new Visit(visitItem, indexedHistoryItems[this.args[0].url]));
+              that.baseVisits.push(new Visit(visitItem, indexedHistoryItems[url]));
               break;
             default:
-              if( that.indexedReferringVisits[visitItem.referringVisitId] ){
-                that.indexedReferringVisits[visitItem.referringVisitId].push(new Visit(visitItem, indexedHistoryItems[this.args[0].url]));
-              } else {
-                that.indexedReferringVisits[visitItem.referringVisitId] = [new Visit(visitItem, indexedHistoryItems[this.args[0].url])];
-              }
+              var irv = that.indexedReferringVisits[visitItem.referringVisitId] = $A(that.indexedReferringVisits[visitItem.referringVisitId]);
+              irv.push(new Visit(visitItem, indexedHistoryItems[url]));
           }
         }
-        if(getVisitsCallbackCount == historyItems.length){
+        if(visitsCallbackCount == historyItems.length){
           that._setBaseVisitChildren.apply(that);
         }
       });
@@ -63,19 +61,19 @@ var SessionedHistory = Class.create({
   _setBaseVisitChildren: function(){
     this._sortBaseVisits();
     //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
-    for(var i = 0; i < this.baseVisits.length; i ++){
+    for(var i = 0; i < this.baseVisits.length; i++){
       var base = this.baseVisits[i];
-      this._getChildren(base, this.indexedReferringVisits);
+      this._setChildren(base);
     }
     this.callback(this);
   },
-  _getChildren: function(base, visits) {
-    var children = visits[base.visitId];
+  _setChildren: function(base) {
+    var children = this._getChildrenOfVisit(base);
     if(children){
       for(var i = 0; i < children.length; i++) {
         var child = children[i];
         base.children = children; //TODO move this below 'getChildren' and out of the for loop
-        this._getChildren(child, visits);
+        this._setChildren(child);
       }
     } else {
       base.children = [];
@@ -92,5 +90,8 @@ var SessionedHistory = Class.create({
         return -1;
       }
     });
+  },
+  _getChildrenOfVisit: function(visit){
+    return this.indexedReferringVisits[visit.visitId];
   }
 });

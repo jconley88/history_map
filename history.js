@@ -40,22 +40,6 @@ function initializeOrAddToArray(collection, item) {
 }
 
 function displayHistory( baseVisits){
-
-
-//  var history = {};
-//  for(visitId in baseVisits) {
-//    var base = baseVisits[visitId];
-//    var url = base.url;
-//    if(history[url]){
-//      var children = base.children;
-//      for(var i = 0; i < children.length; i++) {
-//        var child = children[i];
-//        history[url].children.push(child);
-//      }
-//    } else {
-//      history[url] = base;
-//    }
-//  }
   var domainList = document.getElementById('domainList');
   baseVisits.each(function(root){
     var domainElement = createDomainElement(root.historyItem, root.visitTime);
@@ -97,8 +81,6 @@ function createDomainTitle(historyItem, firstSite){
   return title;
 }
 
-//Ideally we want ALL history, but the function is buggy and I couldn't
-//get it to return all available history
 function createSiteContainer() {
   var siteEntry = document.createElement('div');
   siteEntry.className = 'entry';
@@ -177,6 +159,9 @@ var oneHourAgo = (new Date).getTime() - microsecondsPerHour;
 var oneWeekAgo = (new Date).getTime() - microsecondsPerWeek;
 var oneYearAgo = (new Date).getTime() - microsecondsPerYear;
 
+
+//Ideally we want ALL history, but the function is buggy and I couldn't
+//get it to return all available history
 chrome.history.search({
     'maxResults': 0,
     'text': '',
