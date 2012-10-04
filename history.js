@@ -40,11 +40,11 @@ function initializeOrAddToArray(collection, item) {
 }
 
 function getChildren(base, visits) {
-  var children = visits[base.visitItem.visitId];
+  var children = visits[base.visitId];
    if(children){
      for(var i = 0; i < children.length; i++) {
        var child = children[i];
-       base.children = children;
+       base.children = children; //TODO move this below 'getChildren' and out of the for loop
        getChildren(child, visits);
      }
    } else {
@@ -54,19 +54,6 @@ function getChildren(base, visits) {
 
 
 function getSessionedHistory(historyItems) {
-  //ignore, hide or make a note of auto_subframe visits, form_submit, reload
-  //I'm not sure what keyword and keyword_generated mean
-//  "link"
-//  "typed"
-//  "auto_bookmark"
-//  "auto_subframe"
-//  "manual_subframe"
-//  "generated"
-//  "start_page"
-//  "form_submit"
-//  "reload"
-//  "keyword"
-//  "keyword_generated"
 
   var baseVisits= {};
   var visits = {};
@@ -88,19 +75,19 @@ function getSessionedHistory(historyItems) {
           case 'typed':
           case 'start_page':
           case 'keyword':
-            baseVisits[visitItem.visitId] = {visitItem: visitItem, url: this.args[0].url, historyItem: indexedHistoryItems[this.args[0].url]};
+            baseVisits[visitItem.visitId] = new Visit(visitItem, indexedHistoryItems[this.args[0].url]);
             baseOrder.push({visitId: visitItem.visitId, visitTime: visitItem.visitTime});
             break;
           case 'reload':
             break;
           default:
             if( indexedReferringVisits[visitItem.referringVisitId] ){
-              indexedReferringVisits[visitItem.referringVisitId].push({visitItem: visitItem, url: this.args[0].url, historyItem: indexedHistoryItems[this.args[0].url]});
+              indexedReferringVisits[visitItem.referringVisitId].push(new Visit(visitItem, indexedHistoryItems[this.args[0].url]));
             } else {
-              indexedReferringVisits[visitItem.referringVisitId] = [{visitItem: visitItem, url: this.args[0].url, historyItem: indexedHistoryItems[this.args[0].url]}];
+              indexedReferringVisits[visitItem.referringVisitId] = [new Visit(visitItem, indexedHistoryItems[this.args[0].url])];
             }
         }
-        console.log([visitItem.visitId, visitItem.referringVisitId, this.args[0].url].join(','))
+//        console.log([visitItem.visitId, visitItem.referringVisitId, this.args[0].url].join(','))
       }
 
       if(getVisitsCallbackCount == historyItems.length){
@@ -143,7 +130,7 @@ function continue_process(baseOrder, baseVisits, indexedReferringVisits){
   var domainList = document.getElementById('domainList');
   for(var i = 0; i < baseOrder.length; i++){
       var root = baseVisits[baseOrder[i].visitId];
-      var domainElement = createDomainElement(root.historyItem, new Date(root.visitItem.visitTime));
+      var domainElement = createDomainElement(root.historyItem, root.visitTime);
       var siteList = createSiteList();
       outputChildren(root, siteList);
       domainElement.appendChild(siteList);
@@ -182,12 +169,7 @@ function createDomainTitle(historyItem, firstSite){
   return title;
 }
 
-var microsecondsPerYear = 1000 * 60 * 60 * 24 * 365;
-var microsecondsPerWeek = 1000 * 60 * 60 * 24 * 7;
-var microsecondsPerHour= 1000 * 60 * 60;
-var oneHourAgo = (new Date).getTime() - microsecondsPerHour;
-var oneWeekAgo = (new Date).getTime() - microsecondsPerWeek;
-var oneYearAgo = (new Date).getTime() - microsecondsPerYear;
+
 
 //Ideally we want ALL history, but the function is buggy and I couldn't
 //get it to return all available history
@@ -261,6 +243,13 @@ function outputChildren(root, siteList){
     }
   }
 }
+
+var microsecondsPerYear = 1000 * 60 * 60 * 24 * 365;
+var microsecondsPerWeek = 1000 * 60 * 60 * 24 * 7;
+var microsecondsPerHour= 1000 * 60 * 60;
+var oneHourAgo = (new Date).getTime() - microsecondsPerHour;
+var oneWeekAgo = (new Date).getTime() - microsecondsPerWeek;
+var oneYearAgo = (new Date).getTime() - microsecondsPerYear;
 
 chrome.history.search({
     'maxResults': 0,
