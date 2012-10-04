@@ -52,67 +52,9 @@ function getChildren(base, visits) {
    }
 }
 
+function displayHistory( baseVisits){
 
-function getSessionedHistory(historyItems) {
 
-  var baseVisits= {};
-  var visits = {};
-  var indexedReferringVisits= {};
-  var indexedHistoryItems = {};
-  var last_url = null;
-  var getVisitsCallbackCount = 0;
-  var baseOrder = [];
-  for(var i = 0; i < historyItems.length; i++) {
-    var historyItem = historyItems[i];
-    indexedHistoryItems[historyItem.url] = historyItem;
-    chrome.history.getVisits({ url: historyItem.url}, function(visitItems){
-      getVisitsCallbackCount++;
-      for(var j = 0; j < visitItems.length; j++) {
-        var visitItem = visitItems[j];
-        visits[visitItem.visitId] = visitItem;
-        switch(visitItem.transition){
-          case 'generated':
-          case 'typed':
-          case 'start_page':
-          case 'keyword':
-            baseVisits[visitItem.visitId] = new Visit(visitItem, indexedHistoryItems[this.args[0].url]);
-            baseOrder.push({visitId: visitItem.visitId, visitTime: visitItem.visitTime});
-            break;
-          case 'reload':
-            break;
-          default:
-            if( indexedReferringVisits[visitItem.referringVisitId] ){
-              indexedReferringVisits[visitItem.referringVisitId].push(new Visit(visitItem, indexedHistoryItems[this.args[0].url]));
-            } else {
-              indexedReferringVisits[visitItem.referringVisitId] = [new Visit(visitItem, indexedHistoryItems[this.args[0].url])];
-            }
-        }
-//        console.log([visitItem.visitId, visitItem.referringVisitId, this.args[0].url].join(','))
-      }
-
-      if(getVisitsCallbackCount == historyItems.length){
-        var newBaseOrder = baseOrder.sort(function(a,b){
-          if (a.visitTime < b.visitTime) {
-            return 1;
-          } else if (a.visitTime == b.visitTime){
-            return 0;
-          } else {
-            return -1;
-          }
-        });
-        continue_process(newBaseOrder, baseVisits, indexedReferringVisits);
-      }
-    });
-  }
-}
-function continue_process(baseOrder, baseVisits, indexedReferringVisits){
-  //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
-  for(var visitId in baseVisits) {
-    if (baseVisits.hasOwnProperty(visitId)) {
-      var base = baseVisits[visitId];
-      getChildren(base, indexedReferringVisits);
-    }
-  }
 //  var history = {};
 //  for(visitId in baseVisits) {
 //    var base = baseVisits[visitId];
@@ -128,14 +70,13 @@ function continue_process(baseOrder, baseVisits, indexedReferringVisits){
 //    }
 //  }
   var domainList = document.getElementById('domainList');
-  for(var i = 0; i < baseOrder.length; i++){
-      var root = baseVisits[baseOrder[i].visitId];
-      var domainElement = createDomainElement(root.historyItem, root.visitTime);
-      var siteList = createSiteList();
-      outputChildren(root, siteList);
-      domainElement.appendChild(siteList);
-      domainList.appendChild(domainElement);
-  }
+  baseVisits.each(function(root){
+    var domainElement = createDomainElement(root.historyItem, root.visitTime);
+    var siteList = createSiteList();
+    outputChildren(root, siteList);
+    domainElement.appendChild(siteList);
+    domainList.appendChild(domainElement);
+  });
 }
 
 function insertVisit(groupedVisits, visit){
@@ -168,8 +109,6 @@ function createDomainTitle(historyItem, firstSite){
   });
   return title;
 }
-
-
 
 //Ideally we want ALL history, but the function is buggy and I couldn't
 //get it to return all available history
@@ -257,7 +196,7 @@ chrome.history.search({
     'startTime': oneWeekAgo
   },
   function(historyItems) {
-    getSessionedHistory(historyItems);
+    new SessionedHistory(historyItems, displayHistory);
 
 
 //      var domainName = history['order'][i];
