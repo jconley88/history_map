@@ -48,7 +48,7 @@ function getChildren(base, visits) {
        getChildren(child, visits);
      }
    } else {
-     return [];
+     base.children = [];
    }
 }
 
@@ -71,9 +71,15 @@ function getSessionedHistory(historyItems) {
   var baseVisits= {};
   var visits = {};
   var indexedReferringVisits= {};
+  var indexedHistoryItems = {};
+  var last_url = null;
+  var getVisitsCallbackCount = 0;
+  var baseOrder = [];
   for(var i = 0; i < historyItems.length; i++) {
     var historyItem = historyItems[i];
-    chrome.history.getVisits({ url: historyItem.url }, function(visitItems){
+    indexedHistoryItems[historyItem.url] = historyItem;
+    chrome.history.getVisits({ url: historyItem.url}, function(visitItems){
+      getVisitsCallbackCount++;
       for(var j = 0; j < visitItems.length; j++) {
         var visitItem = visitItems[j];
         visits[visitItem.visitId] = visitItem;
@@ -82,31 +88,67 @@ function getSessionedHistory(historyItems) {
           case 'typed':
           case 'start_page':
           case 'keyword':
-            baseVisits[visitItem.visitId] = {visitItem: visitItem, url: this.args[0].url};
-          break;
+            baseVisits[visitItem.visitId] = {visitItem: visitItem, url: this.args[0].url, historyItem: indexedHistoryItems[this.args[0].url]};
+            baseOrder.push({visitId: visitItem.visitId, visitTime: visitItem.visitTime});
+            break;
+          case 'reload':
+            break;
           default:
             if( indexedReferringVisits[visitItem.referringVisitId] ){
-              indexedReferringVisits[visitItem.referringVisitId].push({visitItem: visitItem, url: this.args[0].url});
+              indexedReferringVisits[visitItem.referringVisitId].push({visitItem: visitItem, url: this.args[0].url, historyItem: indexedHistoryItems[this.args[0].url]});
             } else {
-              indexedReferringVisits[visitItem.referringVisitId] = [{visitItem: visitItem, url: this.args[0].url}];
+              indexedReferringVisits[visitItem.referringVisitId] = [{visitItem: visitItem, url: this.args[0].url, historyItem: indexedHistoryItems[this.args[0].url]}];
             }
         }
+        console.log([visitItem.visitId, visitItem.referringVisitId, this.args[0].url].join(','))
+      }
+
+      if(getVisitsCallbackCount == historyItems.length){
+        var newBaseOrder = baseOrder.sort(function(a,b){
+          if (a.visitTime < b.visitTime) {
+            return 1;
+          } else if (a.visitTime == b.visitTime){
+            return 0;
+          } else {
+            return -1;
+          }
+        });
+        continue_process(newBaseOrder, baseVisits, indexedReferringVisits);
       }
     });
   }
+}
+function continue_process(baseOrder, baseVisits, indexedReferringVisits){
+  //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
   for(var visitId in baseVisits) {
     if (baseVisits.hasOwnProperty(visitId)) {
       var base = baseVisits[visitId];
       getChildren(base, indexedReferringVisits);
-
-//      if(referrer.hasOwnProperty(children)) {
-//        referrer.children.push(indexedVisits[visitId]);
-//      } else {
-//        referrer.children = [indexedVisits[visitId]];
-//      }
     }
   }
-  return baseVisits;
+//  var history = {};
+//  for(visitId in baseVisits) {
+//    var base = baseVisits[visitId];
+//    var url = base.url;
+//    if(history[url]){
+//      var children = base.children;
+//      for(var i = 0; i < children.length; i++) {
+//        var child = children[i];
+//        history[url].children.push(child);
+//      }
+//    } else {
+//      history[url] = base;
+//    }
+//  }
+  var domainList = document.getElementById('domainList');
+  for(var i = 0; i < baseOrder.length; i++){
+      var root = baseVisits[baseOrder[i].visitId];
+      var domainElement = createDomainElement(root.historyItem, new Date(root.visitItem.visitTime));
+      var siteList = createSiteList();
+      outputChildren(root, siteList);
+      domainElement.appendChild(siteList);
+      domainList.appendChild(domainElement);
+  }
 }
 
 function insertVisit(groupedVisits, visit){
@@ -126,12 +168,14 @@ function createDomainListItem(){
   return entry;
 }
 
-function createDomainTitle(domainName, firstSite){
+function createDomainTitle(historyItem, firstSite){
+  var domainName = historyItem.title;
+  var url = historyItem.url;
   var title = document.createElement('span');
   title.className = "title";
-  title.setAttribute('style', "background-image: url(\"chrome://favicon/" + firstSite.url + "\");");
+  title.setAttribute('style', "background-image: url(\"chrome://favicon/" + firstSite + "\");");
 
-  title.appendChild(document.createTextNode(domainName));
+  title.appendChild(document.createTextNode(domainName ));
   title.addEventListener('click', function(){
     this.parentNode.querySelector('ul').classList.toggle('hidden');
   });
@@ -153,35 +197,35 @@ function createSiteContainer() {
   return siteEntry;
 }
 
-function createSiteTitle(url) {
+function createSiteTitle(site) {
   var siteEl = document.createElement('div');
   siteEl.className = "title";
-  siteEl.setAttribute('style', "background-image: url(\"chrome://favicon/" + url + "\");");
+  siteEl.setAttribute('style', "background-image: url(\"chrome://favicon/" + site.url + "\");");
   title = document.createElement('a');
-  title.setAttribute('href', url);
-//  title.setAttribute('title', site.title);
+  title.setAttribute('href', site.url);
+  title.setAttribute('title', site.title);
   var titleText;
-//  if (site.title == '') {
-//    titleText = site.url;
-//  } else {
-    titleText = url;
-//  }
+  if (site.title == '') {
+    titleText = site.url;
+  } else {
+    titleText = site.title;
+  }
   titleTextNode = document.createTextNode(titleText);
   title.appendChild(titleTextNode);
   siteEl.appendChild(title);
   return siteEl;
 }
-function createDomainElement( domainName, firstSite) {
-//  var domainTime = createTimeElement(domainLastVisit);
-  var domainTitle = createDomainTitle(domainName, firstSite);
+function createDomainElement(historyItem, visitTime) {
+  var domainTime = createTimeElement(visitTime);
+  var domainTitle = createDomainTitle(historyItem, historyItem.url);
   var domainEntry = createDomainListItem();
-//  domainEntry.appendChild(domainTime);
+  domainEntry.appendChild(domainTime);
   domainEntry.appendChild(domainTitle);
   return domainEntry;
 }
-function createSiteElement(url) {
+function createSiteElement(site) {
 //  var time = createTimeElement(new Date(site.lastVisitTime));
-  var siteEl = createSiteTitle(url);
+  var siteEl = createSiteTitle(site);
   var siteEntry = createSiteContainer();
 //  siteEntry.appendChild(time);
   siteEntry.appendChild(siteEl);
@@ -211,7 +255,7 @@ function outputChildren(root, siteList){
   if(children){
     for (var i = 0; i < children.length; i++) {
       var child = children[i];
-      var siteElement = createSiteElement(child.url);
+      var siteElement = createSiteElement(child.historyItem);
       siteList.appendChild(siteElement);
       outputChildren(child, siteList);
     }
@@ -221,20 +265,11 @@ function outputChildren(root, siteList){
 chrome.history.search({
     'maxResults': 0,
     'text': '',
-    'startTime': oneHourAgo
+    'startTime': oneWeekAgo
   },
   function(historyItems) {
-    var history = getSessionedHistory(historyItems);
-    var domainList = document.getElementById('domainList');
-//    var previousDomainDateString = null;
-    for( var visitId in history) {
-        var root = history[visitId];
-        var domainElement = createDomainElement(root.url, root.url);
-        var siteList = createSiteList();
-        outputChildren(root, siteList);
-        domainElement.appendChild(siteList);
-        domainList.appendChild(domainElement);
-    }
+    getSessionedHistory(historyItems);
+
 
 //      var domainName = history['order'][i];
 //      var domainLastVisit = new Date(history['history'][domainName]['lastVisitTime']);
