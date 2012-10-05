@@ -106,3 +106,7 @@ h3 {
   display: inline-block;
   cursor: pointer;
 }
+
+.hidden {
+  visibility: hidden;
+}

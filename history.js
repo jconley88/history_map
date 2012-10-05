@@ -48,7 +48,7 @@ function displayHistory( baseVisits){
       domainList.appendChild(dateHeader);
       previousDate = root.visitTime.toDateString();
     }
-    var domainElement = createDomainElement(root.historyItem, root.visitTime);
+    var domainElement = createDomainElement(root.historyItem, root.visitTime, root.children.length);
     var siteList = createSiteList();
     outputChildren(root, siteList);
     domainElement.appendChild(siteList);
@@ -69,7 +69,7 @@ function createTimeElement(date){
 
 function createArrow(){
   var arrow = document.createElement('div');
-  arrow.className = "arrow arrow_collapse"
+  arrow.className = "arrow arrow_collapse";
   arrow.addEventListener('click', function(){
     this.parentNode.querySelector('ul').classList.toggle('hidden');
     arrow.classList.toggle('arrow_collapse');
@@ -119,13 +119,18 @@ function createSiteTitle(site) {
   siteEl.appendChild(title);
   return siteEl;
 }
-function createDomainElement(historyItem, visitTime) {
+function createDomainElement(historyItem, visitTime, childrenCount) {
   var domainTime = createTimeElement(visitTime);
-  var arrow = createArrow();
   var domainTitle = createDomainTitle(historyItem, historyItem.url);
   var domainEntry = createDomainListItem();
   domainEntry.appendChild(domainTime);
+
+  var arrow = createArrow();
+  if(childrenCount == 0) {
+    arrow.classList.add('hidden');
+  }
   domainEntry.appendChild(arrow);
+
   domainEntry.appendChild(domainTitle);
   return domainEntry;
 }
