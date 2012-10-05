@@ -26,12 +26,7 @@ img {
 }
 
 .domainName .title{
-    cursor: pointer;
     color: rgb(48, 57, 66);
-}
-
-.domainName * {
-    cursor: auto;
 }
 
 .entry {
@@ -89,4 +84,25 @@ h3 {
   font-size: 1.2em;
   margin-bottom: 0.8em;
   white-space: nowrap;
+}
+
+.arrow_collapse {
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid #999;
+  -webkit-margin-end: 8px;
+  top: 1px;
+}
+.arrow_expand {
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid #999;
+  -webkit-margin-end: 4px;
+}
+.arrow {
+  width: 0;
+  height: 0;
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
 }

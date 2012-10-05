@@ -67,6 +67,17 @@ function createTimeElement(date){
   return time;
 }
 
+function createArrow(){
+  var arrow = document.createElement('div');
+  arrow.className = "arrow arrow_collapse"
+  arrow.addEventListener('click', function(){
+    this.parentNode.querySelector('ul').classList.toggle('hidden');
+    arrow.classList.toggle('arrow_collapse');
+    arrow.classList.toggle('arrow_expand');
+  });
+  return arrow;
+}
+
 function createDomainListItem(){
   var entry = document.createElement('li');
   entry.className = "domainName";
@@ -76,14 +87,11 @@ function createDomainListItem(){
 function createDomainTitle(historyItem, firstSite){
   var domainName = historyItem.title;
   var url = historyItem.url;
-  var title = document.createElement('span');
+  var title = document.createElement('a');
   title.className = "title";
   title.setAttribute('style', "background-image: url(\"chrome://favicon/" + firstSite + "\");");
-
+  title.setAttribute('href', url);
   title.appendChild(document.createTextNode(domainName ));
-  title.addEventListener('click', function(){
-    this.parentNode.querySelector('ul').classList.toggle('hidden');
-  });
   return title;
 }
 
@@ -113,9 +121,11 @@ function createSiteTitle(site) {
 }
 function createDomainElement(historyItem, visitTime) {
   var domainTime = createTimeElement(visitTime);
+  var arrow = createArrow();
   var domainTitle = createDomainTitle(historyItem, historyItem.url);
   var domainEntry = createDomainListItem();
   domainEntry.appendChild(domainTime);
+  domainEntry.appendChild(arrow);
   domainEntry.appendChild(domainTitle);
   return domainEntry;
 }
