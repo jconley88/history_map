@@ -110,3 +110,7 @@ h3 {
 .hidden {
   visibility: hidden;
 }
+
+.sessionCount {
+  color: grey;
+}

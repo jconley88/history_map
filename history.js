@@ -84,6 +84,14 @@ function createDomainListItem(){
   return entry;
 }
 
+function createChildrenCount(childrenCount){
+  var countEl = document.createElement('span');
+  var str = ' (' + childrenCount + ')';
+  countEl.appendChild(document.createTextNode(str));
+  countEl.className = 'sessionCount';
+  return countEl;
+}
+
 function createDomainTitle(historyItem, firstSite){
   var domainName = historyItem.title;
   var url = historyItem.url;
@@ -132,6 +140,10 @@ function createDomainElement(historyItem, visitTime, childrenCount) {
   domainEntry.appendChild(arrow);
 
   domainEntry.appendChild(domainTitle);
+  if(childrenCount > 0) {
+    var childrenCount = createChildrenCount(childrenCount);
+    domainEntry.appendChild(childrenCount);
+  }
   return domainEntry;
 }
 function createSiteElement(site) {
