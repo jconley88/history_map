@@ -72,9 +72,9 @@ var SessionedHistory = Class.create({
     if(children){
       for(var i = 0; i < children.length; i++) {
         var child = children[i];
-        base.children = children; //TODO move this below 'getChildren' and out of the for loop
         this._setChildren(child);
       }
+      base.children = children;
     } else {
       base.children = [];
     }
