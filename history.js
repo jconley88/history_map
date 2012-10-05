@@ -41,7 +41,13 @@ function initializeOrAddToArray(collection, item) {
 
 function displayHistory( baseVisits){
   var domainList = document.getElementById('domainList');
-  baseVisits.each(function(root){
+  var previousDate;
+  baseVisits.each(function(root, i){
+    if( i == 0 || (root.visitTime.toDateString() != previousDate) ) {
+      var dateHeader = createDateHeader('h3', root.visitTime);
+      domainList.appendChild(dateHeader);
+      previousDate = root.visitTime.toDateString();
+    }
     var domainElement = createDomainElement(root.historyItem, root.visitTime);
     var siteList = createSiteList();
     outputChildren(root, siteList);

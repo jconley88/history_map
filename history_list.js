@@ -23,7 +23,7 @@ var SessionedHistory = Class.create({
   },
   each: function(callback){
     for(var i = 0; i < this.baseVisits.length; i++){
-      callback(this.baseVisits[i]);
+      callback(this.baseVisits[i], i);
     }
   },
   _setVisits: function(historyItems){
