@@ -11,6 +11,22 @@ var Visit = Class.create({
 
   setChildren: function(children){
     this.children = children;
+  },
+  childrenCount: function(){
+    return this._childrenCount(this);
+  },
+  _childrenCount: function(visit){
+    var that = this;
+    var count = 0;
+    if(visit.children){
+      count = count + visit.children.length;
+      if(visit.children.length > 0) {
+        visit.children.each(function(child){
+          count = count + that._childrenCount(child);
+        });
+      }
+    }
+    return count;
   }
 });
 

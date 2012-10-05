@@ -48,7 +48,7 @@ function displayHistory( baseVisits){
       domainList.appendChild(dateHeader);
       previousDate = root.visitTime.toDateString();
     }
-    var domainElement = createDomainElement(root.historyItem, root.visitTime, root.children.length);
+    var domainElement = createDomainElement(root.historyItem, root.visitTime, root.childrenCount());
     var siteList = createSiteList();
     outputChildren(root, siteList);
     domainElement.appendChild(siteList);
