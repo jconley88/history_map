@@ -81,7 +81,24 @@ var SessionedHistory = Class.create({
       var base = this.baseVisits[i];
       this._setChildren(base);
     }
+    this.baseVisits = this._mergeIdenticalBaseVisits();
     this.callback(this);
+  },
+  _mergeIdenticalBaseVisits: function(){
+    var visitsByUrl = this.baseVisits.inject($H(), function(acc, n, index){
+      acc.set(n.url, $A(acc.get(n.url)));
+      acc.get(n.url).push(n);
+      return acc;
+    });
+    return visitsByUrl.values().inject([], function(acc, n){
+      var first = n[0];
+      for(var i = 1; i < n.length; i++){
+        first.children.push(n[i].children);
+      }
+      first.children = first.children.flatten();
+      acc.push(first);
+      return acc;
+    });
   },
   _setChildren: function(base) {
     var children = this._getChildrenOfVisit(base);
@@ -108,6 +125,8 @@ var SessionedHistory = Class.create({
     });
   },
   _getChildrenOfVisit: function(visit){
-    return this.indexedReferringVisits[visit.visitId];
+    var children = this.indexedReferringVisits[visit.visitId];
+    delete this.indexedReferringVisits[visit.visitId];
+    return children;
   }
 });
