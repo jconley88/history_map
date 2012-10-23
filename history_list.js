@@ -75,6 +75,7 @@ var SessionedHistory = Class.create({
   _setBaseVisitChildren: function () {
     var i, base;
     this._sortBaseVisits();
+    this._fixBrokenReferringLinks();
     //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
     for (i = 0; i < this.baseVisits.length; i = i + 1) {
       base = this.baseVisits[i];
@@ -123,9 +124,21 @@ var SessionedHistory = Class.create({
       }
     });
   },
-  _getChildrenOfVisit: function (visit) {
+   _getChildrenOfVisit: function (visit) {
     var children = this.indexedReferringVisits[visit.visitId];
     delete this.indexedReferringVisits[visit.visitId];
     return children;
+  },
+  _fixBrokenReferringLinks: function () {
+    var referrerId, fixedLinks, referringVisits;
+    fixedLinks = chrome.extension.getBackgroundPage().links;
+    referringVisits = this.indexedReferringVisits;
+    $A(referringVisits[0]).each(function(visit, index){
+      referrerId = fixedLinks.getReferrerId(visit.visitId);
+      if(referrerId){
+        referringVisits[referrerId] = visit;
+        referringVisits[0].splice(index, 1);
+      }
+    });
   }
 });

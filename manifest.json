@@ -6,7 +6,10 @@
   "chrome_url_overrides" : {
     "history": "history.html"
   },
+  "background": {
+    "scripts": ["log_tab_urls.js", "prototype.js"]
+  },
   "permissions": [
-    "history", "chrome://favicon/"
+    "history", "chrome://favicon/", "tabs", "webNavigation"
   ]
 }
