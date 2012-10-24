@@ -1,40 +1,45 @@
 // onBeforeNavigate -> onCommitted -> tabs.onUpdated -> onCompleted
 
-var tracker = createUrlTimeStampTracker();
+var tabTimeStamps = tabTimeStampTracker();
 var other = createSomethingOrOther();
 var links = linkedTabs();
 
+tabTimeStamps.startTracking();
+
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
   if (tab.openerTabId && changeInfo.status && changeInfo.status == 'complete') {
-    other.logNewTab(tracker.getVisit(tab.openerTabId), tracker.getVisit(tabId));
+    other.logNewTab(tabTimeStamps.getTabInfo(tab.openerTabId), tabTimeStamps.getTabInfo(tabId));
   }
 });
 
-function createUrlTimeStampTracker(){
-  var visits = {};
+function tabTimeStampTracker(){
+  var tabInfo = {};
 
-  chrome.webNavigation.onCommitted.addListener(function(details) {
-    addVisit(details);
-  });
+  function startTracking(){
+    chrome.webNavigation.onCommitted.addListener(function(details) {
+      addVisit(details);
+    });
 
-  chrome.tabs.onRemoved.addListener(function(tabId) {
-    removeVisit(tabId);
-  });
+    chrome.tabs.onRemoved.addListener(function(tabId) {
+      removeVisit(tabId);
+    });
+  }
 
   function addVisit(webNavigation){
-    visits[webNavigation.tabId] = {timeStamp: webNavigation.timeStamp, url: webNavigation.url, tabId: webNavigation.tabId};
+    tabInfo[webNavigation.tabId] = {timeStamp: webNavigation.timeStamp, url: webNavigation.url, tabId: webNavigation.tabId};
   }
   
   function removeVisit(tabId){
-    delete visits[tabId];
+    delete tabInfo[tabId];
   }
 
-  function getVisit(tabId){
-    return visits[tabId];
+  function getTabInfo(tabId){
+    return tabInfo[tabId];
   }
 
   return {
-    getVisit: getVisit
+    startTracking: startTracking,
+    getTabInfo: getTabInfo
   }
 }
 
@@ -110,11 +115,11 @@ function createSomethingOrOther(){
     if(referrer && newTab) {
       var link = tabsLink(links.addLink);
       chrome.history.getVisits({url: referrer.url}, function(visitItems){
-        visitItemId = findNearestVisitItemId(referrer.timeStamp, visitItems);
+        var visitItemId = findNearestVisitItemId(referrer.timeStamp, visitItems);
         link.addSourceVisitId(visitItemId);
       });
       chrome.history.getVisits({url: newTab.url}, function(visitItems){
-        visitItemId = findNearestVisitItemId(newTab.timeStamp, visitItems);
+        var visitItemId = findNearestVisitItemId(newTab.timeStamp, visitItems);
         link.addDestinationVisitId(visitItemId);
       });
     }
