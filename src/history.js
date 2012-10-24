@@ -192,7 +192,7 @@ chrome.history.search(
   {
     'maxResults': 0,
     'text': '',
-    'startTime': oneHourAgo
+    'startTime': oneWeekAgo
   },
   function (historyItems) {
     new SessionedHistory(historyItems, displayHistory);

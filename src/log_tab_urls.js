@@ -38,6 +38,15 @@ function createUrlTimeStampTracker(){
   }
 }
 
+//function link(source, destination, callback) {
+//
+//
+//  return {
+//    addSource: addSource,
+//    addDestination: addDestination
+//  }
+//}
+
 function linkedTabs(){
   //refactor this to hold an object with one key (visitId) with its value (referringId)
   var newTabs = {};
