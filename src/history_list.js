@@ -97,7 +97,7 @@ function historyData() {
     fixedLinks = chrome.extension.getBackgroundPage().links;
     referringVisits = indexedReferringVisits;
     $A(referringVisits[0]).each(function(visit, index){
-      referrerId = fixedLinks.getReferrerId(visit.visitId);
+      referrerId = fixedLinks.getSourceId(visit.visitId);
       if(referrerId){
         referringVisits[referrerId] = referringVisits[referrerId] || $A();
         referringVisits[referrerId].push(visit);

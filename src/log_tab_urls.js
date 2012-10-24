@@ -38,49 +38,56 @@ function createUrlTimeStampTracker(){
   }
 }
 
-//function link(source, destination, callback) {
-//
-//
-//  return {
-//    addSource: addSource,
-//    addDestination: addDestination
-//  }
-//}
+function tabsLink(callback) {
+  var sourceId;
+  var destinationId;
 
-function linkedTabs(){
-  //refactor this to hold an object with one key (visitId) with its value (referringId)
-  var newTabs = {};
-
-  function newTabKey(referrer, newTab){
-    return referrer.tabId.toString() + newTab.tabId.toString();
+  function sourceVisitId(){
+    return sourceId;
   }
 
-  function newLink(referrer, newTab){
-    //refactor this to return an object that checks when both referrer and new tab are set
-    return newTabs[newTabKey(referrer, newTab)] = {}
+  function destinationVisitId(){
+    return destinationId;
   }
 
-  function getLinks(){
-    return newTabs;
+  function addSourceVisitId(visitId) {
+    sourceId = visitId;
+    finalize.call(this);
   }
-  
-  function getReferrerId(visitId){
-    var result;
-    result = $H(newTabs).detect(function(hash){
-      var link = hash[1];
-      if(link.newTabVisitId === visitId){
-        return true;
-      } else {
-        return false;
-      }
-    });
-    return result ? result[1].referrerVisitId : null;
+
+  function addDestinationVisitId(visitId) {
+    destinationId = visitId;
+    finalize.call(this);
+  }
+
+  function finalize() {
+    if (this.sourceVisitId() && this.destinationVisitId()) {
+      callback(this);
+    }
   }
 
   return {
-    newLink: newLink,
-    getLinks: getLinks,
-    getReferrerId: getReferrerId
+    sourceVisitId: sourceVisitId,
+    destinationVisitId: destinationVisitId,
+    addSourceVisitId: addSourceVisitId,
+    addDestinationVisitId: addDestinationVisitId
+  }
+}
+
+function linkedTabs(){
+  var newTabs = {};
+
+  function addLink(link) {
+    newTabs[link.destinationVisitId()] = link.sourceVisitId();
+  }
+  
+  function getSourceId(visitId){
+    return newTabs[visitId];
+  }
+
+  return {
+    addLink: addLink,
+    getSourceId: getSourceId
   }
 }
 
@@ -101,14 +108,14 @@ function createSomethingOrOther(){
 
   function logNewTab(referrer, newTab){
     if(referrer && newTab) {
-      var link = links.newLink(referrer, newTab);
+      var link = tabsLink(links.addLink);
       chrome.history.getVisits({url: referrer.url}, function(visitItems){
         visitItemId = findNearestVisitItemId(referrer.timeStamp, visitItems);
-        link.referrerVisitId = visitItemId;
+        link.addSourceVisitId(visitItemId);
       });
       chrome.history.getVisits({url: newTab.url}, function(visitItems){
         visitItemId = findNearestVisitItemId(newTab.timeStamp, visitItems);
-        link.newTabVisitId = visitItemId;
+        link.addDestinationVisitId(visitItemId);
       });
     }
   }
