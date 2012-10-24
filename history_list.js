@@ -1,5 +1,125 @@
 //"use strict";
 
+function historyData() {
+  var baseVisits = [],
+      indexedReferringVisits = {},
+      visits = {};
+
+  function addVisit (visit) {
+    var irv;
+    switch (visit.visitItem.transition) {
+    case 'generated':
+    case 'typed':
+    case 'start_page':
+    case 'keyword':
+      baseVisits.push(visit);
+      break;
+    default:
+      irv = indexedReferringVisits[visit.visitItem.referringVisitId] = $A(indexedReferringVisits[visit.visitItem.referringVisitId]);
+      irv.push(visit);
+    }
+    visits[visit.visitId] = visit;
+  }
+
+  function finalize() {
+    var i, base;
+    fixBrokenReferringLinks();
+    setAbandonedBaseVisits();
+    sortBaseVisits();
+    //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
+    for (i = 0; i < baseVisits.length; i = i + 1) {
+      base = baseVisits[i];
+      setChildren(base);
+    }
+//    baseVisits = mergeIdenticalBaseVisits();
+  }
+
+  function setAbandonedBaseVisits(){
+    $H(indexedReferringVisits).each(function(referVisit){
+      if(visits[referVisit.key]){
+        // Do nothing
+      } else {
+        referVisit.value.each(function(visit){
+          baseVisits.push(visit);
+        });
+        delete indexedReferringVisits[referVisit.key];
+      }
+    });
+  }
+
+  function mergeIdenticalBaseVisits() {
+    var visitsByUrl = baseVisits.inject($H(), function (acc, n) {
+      acc.set(n.url, $A(acc.get(n.url)));
+      acc.get(n.url).push(n);
+      return acc;
+    });
+    return visitsByUrl.values().inject([], function (acc, n) {
+      var i, first = n[0];
+      for (i = 1; i < n.length; i = i + 1) {
+        first.children.push(n[i].children);
+      }
+      first.children = first.children.flatten();
+      acc.push(first);
+      return acc;
+    });
+  }
+  function setChildren(base) {
+    var i, child, children = getChildrenOfVisit(base);
+    if (children) {
+      for(i = 0; i < children.length; i = i + 1) {
+        child = children[i];
+        setChildren(child);
+      }
+      base.children = children;
+    } else {
+      base.children = [];
+    }
+  }
+  function sortBaseVisits() {
+    //TODO update to sort this by the time of the most recently accessed page in this session
+    baseVisits = baseVisits.sort(function (a, b) {
+      if (a.visitTime < b.visitTime) {
+        return 1;
+      } else if (a.visitTime === b.visitTime) {
+        return 0;
+      } else {
+        return -1;
+      }
+    });
+  }
+  function getChildrenOfVisit(visit) {
+    var children = indexedReferringVisits[visit.visitId];
+    delete indexedReferringVisits[visit.visitId];
+    return children;
+  }
+  function fixBrokenReferringLinks() {
+    var referrerId, fixedLinks, referringVisits;
+    fixedLinks = chrome.extension.getBackgroundPage().links;
+    referringVisits = indexedReferringVisits;
+    $A(referringVisits[0]).each(function(visit, index){
+      referrerId = fixedLinks.getReferrerId(visit.visitId);
+      if(referrerId){
+        referringVisits[referrerId] = referringVisits[referrerId] || $A();
+        referringVisits[referrerId].push(visit);
+        delete referringVisits[0][index];
+      }
+    });
+    indexedReferringVisits[0] = $A(indexedReferringVisits[0]).flatten();
+  }
+  function each(callback) {
+    var i;
+    for (i = 0; i < baseVisits.length; i = i + 1) {
+      callback(baseVisits[i], i);
+    }
+  }
+  return {
+    addVisit: addVisit,
+    finalize: finalize,
+    each: each,
+    baseVisits: baseVisits
+  }
+}
+
 var Visit = Class.create({
   initialize: function (visitItem, historyItem) {
     this.visitItem = visitItem;
@@ -36,109 +156,28 @@ var SessionedHistory = Class.create({
     this.indexedReferringVisits = {};
     this.callback = callback;
     this._setVisits(historyItems);
-  },
-  each: function (callback) {
-    var i;
-    for (i = 0; i < this.baseVisits.length; i = i + 1) {
-      callback(this.baseVisits[i], i);
-    }
+    this.historyData = historyData();
   },
   _setVisits: function (historyItems) {
-    var i, historyItem, visits = {}, indexedHistoryItems = {}, visitsCallbackCount = 0, that = this;
+    var i,
+        historyItem,
+        indexedHistoryItems = {},
+        visitsCallbackCount = 0,
+        that = this;
     for (i = 0; i < historyItems.length; i = i + 1) {
       historyItem = historyItems[i];
       indexedHistoryItems[historyItem.url] = historyItem;
       chrome.history.getVisits({ url: historyItem.url}, function (visitItems) {
-        var j, irv, visitItem, url = this.args[0].url;
+        var j, url = this.args[0].url;
         visitsCallbackCount = visitsCallbackCount + 1;
         for (j = 0; j < visitItems.length; j = j + 1) {
-          visitItem = visitItems[j];
-          visits[visitItem.visitId] = visitItem;
-          switch (visitItem.transition) {
-          case 'generated':
-          case 'typed':
-          case 'start_page':
-          case 'keyword':
-            that.baseVisits.push(new Visit(visitItem, indexedHistoryItems[url]));
-            break;
-          default:
-            irv = that.indexedReferringVisits[visitItem.referringVisitId] = $A(that.indexedReferringVisits[visitItem.referringVisitId]);
-            irv.push(new Visit(visitItem, indexedHistoryItems[url]));
-          }
+          that.historyData.addVisit(new Visit(visitItems[j], indexedHistoryItems[url]));
         }
         if (visitsCallbackCount === historyItems.length) {
-          that._setBaseVisitChildren.apply(that);
+          that.historyData.finalize();
+          that.callback(that.historyData);
         }
       });
     }
-  },
-  _setBaseVisitChildren: function () {
-    var i, base;
-    this._sortBaseVisits();
-    this._fixBrokenReferringLinks();
-    //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
-    for (i = 0; i < this.baseVisits.length; i = i + 1) {
-      base = this.baseVisits[i];
-      this._setChildren(base);
-    }
-    this.baseVisits = this._mergeIdenticalBaseVisits();
-    this.callback(this);
-  },
-  _mergeIdenticalBaseVisits: function () {
-    var visitsByUrl = this.baseVisits.inject($H(), function (acc, n) {
-      acc.set(n.url, $A(acc.get(n.url)));
-      acc.get(n.url).push(n);
-      return acc;
-    });
-    return visitsByUrl.values().inject([], function (acc, n) {
-      var i, first = n[0];
-      for (i = 1; i < n.length; i = i + 1) {
-        first.children.push(n[i].children);
-      }
-      first.children = first.children.flatten();
-      acc.push(first);
-      return acc;
-    });
-  },
-  _setChildren: function (base) {
-    var i, child, children = this._getChildrenOfVisit(base);
-    if (children) {
-      for(i = 0; i < children.length; i = i + 1) {
-        child = children[i];
-        this._setChildren(child);
-      }
-      base.children = children;
-    } else {
-      base.children = [];
-    }
-  },
-  _sortBaseVisits: function () {
-    //TODO update to sort this by the time of the most recently accessed page in this session
-    this.baseVisits = this.baseVisits.sort(function (a, b) {
-      if (a.visitTime < b.visitTime) {
-        return 1;
-      } else if (a.visitTime === b.visitTime) {
-        return 0;
-      } else {
-        return -1;
-      }
-    });
-  },
-   _getChildrenOfVisit: function (visit) {
-    var children = this.indexedReferringVisits[visit.visitId];
-    delete this.indexedReferringVisits[visit.visitId];
-    return children;
-  },
-  _fixBrokenReferringLinks: function () {
-    var referrerId, fixedLinks, referringVisits;
-    fixedLinks = chrome.extension.getBackgroundPage().links;
-    referringVisits = this.indexedReferringVisits;
-    $A(referringVisits[0]).each(function(visit, index){
-      referrerId = fixedLinks.getReferrerId(visit.visitId);
-      if(referrerId){
-        referringVisits[referrerId] = visit;
-        referringVisits[0].splice(index, 1);
-      }
-    });
   }
 });
