@@ -82,12 +82,30 @@ function tabsLink(callback) {
 function linkedTabs(){
   var newTabs = {};
 
+  function toKey(visitId){
+    return "_" + visitId; //2012-10-25 JC: chrome storage does not support an all number key, of which visitId's solely consist
+  }
+
   function addLink(link) {
-    newTabs[link.destinationVisitId()] = link.sourceVisitId();
+    var storageObj = {},
+        key = toKey(link.destinationVisitId()),
+        value = link.sourceVisitId();
+
+    newTabs[key] = value;
+    storageObj[key] = value;
+    chrome.storage.local.set(storageObj);
   }
   
-  function getSourceId(visitId){
-    return newTabs[visitId];
+  function getSourceId(visitId, callback){
+    var key = toKey(visitId);
+    return newTabs[key] ||
+        chrome.storage.local.get(key, function(item){
+          if(item[key]){
+            callback(item[key]);
+          } else {
+            callback(null);
+          }
+        });
   }
 
   return {

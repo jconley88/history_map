@@ -10,6 +10,6 @@
     "scripts": ["src/log_tab_urls.js", "vendor/prototype.js"]
   },
   "permissions": [
-    "history", "chrome://favicon/", "tabs", "webNavigation"
+    "history", "chrome://favicon/", "tabs", "webNavigation", "storage"
   ]
 }

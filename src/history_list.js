@@ -1,9 +1,11 @@
 //"use strict";
 
 function historyData() {
+  var self;
   var baseVisits = [],
       indexedReferringVisits = {},
       visits = {};
+
 
   function addVisit (visit) {
     var irv;
@@ -21,20 +23,26 @@ function historyData() {
     visits[visit.visitId] = visit;
   }
 
-  function finalize() {
+  function finalize(callback) {
     var i, base;
-    fixBrokenReferringLinks();
-    setAbandonedBaseVisits();
-    sortBaseVisits();
-    //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
-    for (i = 0; i < baseVisits.length; i = i + 1) {
-      base = baseVisits[i];
-      setChildren(base);
-    }
+    async.series([
+      fixBrokenReferringLinks,
+      setAbandonedBaseVisits,
+      sortBaseVisits
+    ],
+      function(err, results){
+        //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
+        for (i = 0; i < baseVisits.length; i = i + 1) {
+          base = baseVisits[i];
+          setChildren(base);
+        }
 //    baseVisits = mergeIdenticalBaseVisits();
+        callback(null, self);
+      }
+    );
   }
 
-  function setAbandonedBaseVisits(){
+  function setAbandonedBaseVisits(callback){
     $H(indexedReferringVisits).each(function(referVisit){
       if(visits[referVisit.key]){
         // Do nothing
@@ -45,6 +53,7 @@ function historyData() {
         delete indexedReferringVisits[referVisit.key];
       }
     });
+    callback(null);
   }
 
   function mergeIdenticalBaseVisits() {
@@ -75,7 +84,7 @@ function historyData() {
       base.children = [];
     }
   }
-  function sortBaseVisits() {
+  function sortBaseVisits(callback) {
     //TODO update to sort this by the time of the most recently accessed page in this session
     baseVisits = baseVisits.sort(function (a, b) {
       if (a.visitTime < b.visitTime) {
@@ -86,25 +95,33 @@ function historyData() {
         return -1;
       }
     });
+    callback(null);
   }
   function getChildrenOfVisit(visit) {
     var children = indexedReferringVisits[visit.visitId];
     delete indexedReferringVisits[visit.visitId];
     return children;
   }
-  function fixBrokenReferringLinks() {
-    var referrerId, fixedLinks, referringVisits;
+  function fixBrokenReferringLinks(callback) {
+    var referrerId, fixedLinks, referringVisits, counter;
+    counter = 0;
     fixedLinks = chrome.extension.getBackgroundPage().links;
     referringVisits = indexedReferringVisits;
+
     $A(referringVisits[0]).each(function(visit, index){
-      referrerId = fixedLinks.getSourceId(visit.visitId);
-      if(referrerId){
-        referringVisits[referrerId] = referringVisits[referrerId] || $A();
-        referringVisits[referrerId].push(visit);
-        delete referringVisits[0][index];
-      }
+      referrerId = fixedLinks.getSourceId(visit.visitId, function(referrerId){
+        if(referrerId){
+          referringVisits[referrerId] = referringVisits[referrerId] || $A();
+          referringVisits[referrerId].push(visit);
+          delete referringVisits[0][index];
+        }
+        counter++;
+        if(counter === referringVisits[0].length){
+          indexedReferringVisits[0] = $A(indexedReferringVisits[0]).flatten();
+          callback(null);
+        }
+      });
     });
-    indexedReferringVisits[0] = $A(indexedReferringVisits[0]).flatten();
   }
   function each(callback) {
     var i;
@@ -112,7 +129,7 @@ function historyData() {
       callback(baseVisits[i], i);
     }
   }
-  return {
+  return self = {
     addVisit: addVisit,
     finalize: finalize,
     each: each,
@@ -174,8 +191,10 @@ var SessionedHistory = Class.create({
           that.historyData.addVisit(new Visit(visitItems[j], indexedHistoryItems[url]));
         }
         if (visitsCallbackCount === historyItems.length) {
-          that.historyData.finalize();
-          that.callback(that.historyData);
+          async.waterfall([
+            that.historyData.finalize,
+            that.callback
+          ]);
         }
       });
     }
