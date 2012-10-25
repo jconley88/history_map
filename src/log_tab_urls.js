@@ -17,7 +17,9 @@ function tabTimeStampTracker(){
 
   function startTracking(){
     chrome.webNavigation.onCommitted.addListener(function(details) {
-      addVisit(details);
+      if(details.frameId === 0){
+        addVisit(details);
+      }
     });
 
     chrome.tabs.onRemoved.addListener(function(tabId) {
