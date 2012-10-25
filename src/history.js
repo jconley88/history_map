@@ -76,8 +76,8 @@ function createChildrenCountEl(childrenCount) {
 
 function createDomainTitle(historyItem, firstSite) {
   var domainName, url, title;
-  domainName = historyItem.title;
   url = historyItem.url;
+  domainName = historyItem.title || url;
   title = document.createElement('a');
   title.className = "title";
   title.setAttribute('style', "background-image: url(\"chrome://favicon/" + firstSite + "\");");
