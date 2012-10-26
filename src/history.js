@@ -133,9 +133,14 @@ function createSiteElement(site) {
   return siteEntry;
 }
 
-function createSiteList() {
+function createSiteList(level) {
   var siteList = document.createElement('ul');
-  siteList.className = "siteList hidden";
+  siteList.className = "siteList";
+  if(level === 0){
+    siteList.className = "siteList hidden";
+  } else {
+    siteList.className = "childSiteList";
+  }
   return siteList;
 }
 
@@ -150,20 +155,25 @@ function createDateHeader(headerTag, date) {
   return dateHeader;
 }
 
-function outputChildren(root, siteList) {
-  var i, child, siteElement, children = root.children;
+function outputChildren(root, level) {
+  var i, child, siteElement, siteList, children
+      children = root.children;
   if (children) {
+    siteList = createSiteList(level);
     for (i = 0; i < children.length; i = i + 1) {
       child = children[i];
       siteElement = createSiteElement(child.historyItem);
       siteList.appendChild(siteElement);
-      outputChildren(child, siteList);
+      siteList.appendChild(outputChildren(child, level + 1));
     }
   }
+  return siteList;
 }
 
 function displayHistory(baseVisits) {
-  var previousDate, domainElement, siteList, domainList = document.getElementById('domainList');
+  var previousDate, domainElement, children,
+      level = 0,
+      domainList = document.getElementById('domainList');
   baseVisits.each(function (root, i) {
     if (i === 0 || (root.visitTime.toDateString() !== previousDate)) {
       var dateHeader = createDateHeader('h3', root.visitTime);
@@ -171,9 +181,8 @@ function displayHistory(baseVisits) {
       previousDate = root.visitTime.toDateString();
     }
     domainElement = createDomainElement(root.historyItem, root.visitTime, root.childrenCount());
-    siteList = createSiteList();
-    outputChildren(root, siteList);
-    domainElement.appendChild(siteList);
+    children = outputChildren(root, level);
+    domainElement.appendChild(children);
     domainList.appendChild(domainElement);
   });
 }
