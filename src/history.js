@@ -1,7 +1,24 @@
 //"use strict";
 
+var microsecondsPerDay = 1000 * 60 * 60 * 24;
 var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+document.observe('dom:loaded', function(){
+  var moreHistory;
+  var startTime = (new Date()).setHours(0,0,0,0);
+  var endTime = Date.now();
+  getHistory(startTime, endTime);
+
+  moreHistory = document.getElementsByClassName('moreHistory')[0];
+  moreHistory.addEventListener('click', function(e){
+    e.preventDefault();
+    var start = this.getAttribute('start');
+    var end = this.getAttribute('end');
+    getHistory(parseInt(start), parseInt(end));
+    return false;
+  });
+});
 
 function formatAMPM(date) {
   var strTime, hours = date.getHours(), minutes = date.getMinutes(), ampm = hours >= 12 ? 'PM' : 'AM';
@@ -170,10 +187,11 @@ function outputChildren(root, level) {
   return siteList;
 }
 
-function displayHistory(baseVisits) {
+function displayHistory(start, end, baseVisits) {
   var previousDate, domainElement, children,
       level = 0,
-      domainList = document.getElementById('domainList');
+      domainList = document.getElementById('domainList'),
+      moreHistory = document.getElementsByClassName('moreHistory')[0];
   baseVisits.each(function (root, i) {
     if (i === 0 || (root.visitTime.toDateString() !== previousDate)) {
       var dateHeader = createDateHeader('h3', root.visitTime);
@@ -185,27 +203,24 @@ function displayHistory(baseVisits) {
     domainElement.appendChild(children);
     domainList.appendChild(domainElement);
   });
+  moreHistory.setAttribute('start', start - microsecondsPerDay);
+  moreHistory.setAttribute('end', start);
 }
-
-var microsecondsPerYear = 1000 * 60 * 60 * 24 * 365;
-var microsecondsPerWeek = 1000 * 60 * 60 * 24 * 7;
-var microsecondsPerHour = 1000 * 60 * 60;
-var oneHourAgo = (new Date()).getTime() - microsecondsPerHour;
-var oneWeekAgo = (new Date()).getTime() - microsecondsPerWeek;
-var oneYearAgo = (new Date()).getTime() - microsecondsPerYear;
-
 
 //Ideally we want ALL history, but the function is buggy and I couldn't
 //get it to return all available history
-chrome.history.search(
-  {
-    'maxResults': 0,
-    'text': '',
-    'startTime': oneWeekAgo
-  },
-  function (historyItems) {
-    new SessionedHistory(historyItems, displayHistory);
-
+function getHistory(startTime, endTime){
+  chrome.history.search(
+    {
+      'maxResults': 0,
+      'text': '',
+      'startTime': startTime,
+      'endTime': endTime
+    },
+    function (historyItems) {
+      new SessionedHistory(historyItems, startTime, endTime, displayHistory);
+    });
+}
 
 //      var domainName = history['order'][i];
 //      var domainLastVisit = new Date(history['history'][domainName]['lastVisitTime']);
@@ -237,5 +252,3 @@ chrome.history.search(
 //
 //      domainElement.appendChild(siteList);
 //      domainList.appendChild(domainElement);
-  }
-);

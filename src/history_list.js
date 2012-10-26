@@ -168,12 +168,14 @@ var Visit = Class.create({
 });
 
 var SessionedHistory = Class.create({
-  initialize: function (historyItems, callback) {
+  initialize: function (historyItems, start, end, callback) {
     this.baseVisits = [];
     this.indexedReferringVisits = {};
-    this.callback = callback;
+    this.callback = callback.bind(this, start, end);
     this._setVisits(historyItems);
     this.historyData = historyData();
+    this.start = start;
+    this.end = end;
   },
   _setVisits: function (historyItems) {
     var i,
@@ -185,10 +187,13 @@ var SessionedHistory = Class.create({
       historyItem = historyItems[i];
       indexedHistoryItems[historyItem.url] = historyItem;
       chrome.history.getVisits({ url: historyItem.url}, function (visitItems) {
-        var j, url = this.args[0].url;
+        var j, visitItem, url = this.args[0].url;
         visitsCallbackCount = visitsCallbackCount + 1;
         for (j = 0; j < visitItems.length; j = j + 1) {
-          that.historyData.addVisit(new Visit(visitItems[j], indexedHistoryItems[url]));
+          visitItem = visitItems[j];
+          if(visitItem.visitTime >= that.start && visitItem.visitTime <= that.end){
+            that.historyData.addVisit(new Visit(visitItem, indexedHistoryItems[url]));
+          }
         }
         if (visitsCallbackCount === historyItems.length) {
           async.waterfall([
