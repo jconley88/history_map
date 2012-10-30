@@ -122,13 +122,14 @@ function historyData() {
 
 var Visit = Class.create({
   initialize: function (visitItem, historyItem, children) {
-    this.visitItem = visitItem;
-    this.historyItem = historyItem;
     this.visitId = visitItem.visitId;
-    this.visitDate = new Date(visitItem.visitTime);
-    this.visitTime = this.visitDate.getTime();
+    this.referringVisitId = visitItem.referringVisitId;
+    this.transition = visitItem.transition;
+    this.visitTime = visitItem.visitTime;
     this.url = historyItem.url;
     this.title = historyItem.title;
+
+    this.visitDate = new Date(visitItem.visitTime);
     this.setChildren(children);
   },
   setChildren: function (children) {
@@ -174,8 +175,6 @@ request.onsuccess = function(e) {
     }
   }
 };
-//request.onfailure = webkitIndexedDB.onerror;
-request.onfailure = function(e){console.log(e)};
 
 Visit.getByDate = function(start, end, callback){
   var db = Visit.db;
