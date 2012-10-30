@@ -6,7 +6,6 @@ function historyData() {
       indexedReferringVisits = {},
       visits = {};
 
-
   function addVisit (visit) {
     var irv;
     switch (visit.visitItem.transition) {
@@ -24,22 +23,31 @@ function historyData() {
   }
 
   function finalize(callback) {
-    var i, base;
     async.series([
-      fixBrokenReferringLinks,
       setAbandonedBaseVisits,
-      sortBaseVisits
+      sortBaseVisits,
+      nestChildren,
+      save
     ],
       function(err, results){
-        //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
-        for (i = 0; i < baseVisits.length; i = i + 1) {
-          base = baseVisits[i];
-          setChildren(base);
-        }
-//    baseVisits = mergeIdenticalBaseVisits();
         callback(null, self);
       }
     );
+  }
+  function nestChildren(callback){
+    var i, base;
+    //TODO make sure all visits are referenced from indexedReferringVisits.  Any that are leftover should still be shown to the user somehow
+    for (i = 0; i < baseVisits.length; i = i + 1) {
+      base = baseVisits[i];
+      setChildren(base);
+    }
+//    baseVisits = mergeIdenticalBaseVisits();
+    callback(null, self);
+  }
+  function save(){
+    baseVisits.each(function(v){
+      v.save()
+    });
   }
 
   function setAbandonedBaseVisits(callback){
@@ -102,32 +110,7 @@ function historyData() {
     delete indexedReferringVisits[visit.visitId];
     return children;
   }
-  function fixBrokenReferringLinks(callback) {
-    var referrerId, fixedLinks, referringVisits, counter;
-    counter = 0;
-    fixedLinks = chrome.extension.getBackgroundPage().links;
-    referringVisits = indexedReferringVisits;
-
-    $A(referringVisits[0]).each(function(visit, index){
-      referrerId = fixedLinks.getSourceId(visit.visitId, function(referrerId){
-        if(referrerId){
-          referringVisits[referrerId] = referringVisits[referrerId] || $A();
-          referringVisits[referrerId].push(visit);
-          delete referringVisits[0][index];
-        }
-        counter++;
-        if(counter === referringVisits[0].length){
-          indexedReferringVisits[0] = $A(indexedReferringVisits[0]).flatten();
-          callback(null);
-        }
-      });
-    });
-  }
   function each(callback) {
-    var i;
-    for (i = 0; i < baseVisits.length; i = i + 1) {
-      callback(baseVisits[i], i);
-    }
   }
   return self = {
     addVisit: addVisit,
@@ -138,20 +121,28 @@ function historyData() {
 }
 
 var Visit = Class.create({
-  initialize: function (visitItem, historyItem) {
+  initialize: function (visitItem, historyItem, children) {
     this.visitItem = visitItem;
     this.historyItem = historyItem;
     this.visitId = visitItem.visitId;
-    this.visitTime = new Date(visitItem.visitTime);
+    this.visitDate = new Date(visitItem.visitTime);
+    this.visitTime = this.visitDate.getTime();
     this.url = historyItem.url;
     this.title = historyItem.title;
+    this.setChildren(children);
   },
-
   setChildren: function (children) {
-    this.children = children;
+    this.children = children || [];
   },
   childrenCount: function () {
     return this._childrenCount(this);
+  },
+  save: function() {
+    var db = Visit.db;
+    var trans = db.transaction(["visits"], 'readwrite');
+    var store = trans.objectStore("visits");
+    console.log(this);
+    store.put(this);
   },
   _childrenCount: function (visit) {
     var that = this, count = 0;
@@ -167,10 +158,59 @@ var Visit = Class.create({
   }
 });
 
+var dbVersion = 10;
+var request = webkitIndexedDB.open("history_map", dbVersion);
+request.onsuccess = function(e) {
+  console.log(e);
+  Visit.db = e.target.result;
+  if (Visit.db.setVersion) {
+    if (Visit.db.version != dbVersion) {
+      var setVersion = Visit.db.setVersion(dbVersion);
+      setVersion.onsuccess = function () {
+        var store = e.target.result.createObjectStore("visits", {keyPath: "visitTime"});
+        store.createIndex("url", "url", { unique: false });
+        store.createIndex("visitId", "visitId", { unique: true });
+      };
+    }
+  }
+};
+//request.onfailure = webkitIndexedDB.onerror;
+request.onfailure = function(e){console.log(e)};
+
+Visit.getByDate = function(start, end, callback){
+  var db = Visit.db;
+  var trans = db.transaction(["visits"], 'readwrite');
+  var store = trans.objectStore("visits");
+  var bounds = webkitIDBKeyRange.bound(start, end, false, true);
+  results = [];
+  results.eachWithIndex = function(callback){
+    var i;
+    for (i = 0; i < this.length; i = i + 1) {
+      callback(this[i], i);
+    }
+  }
+  store.openCursor(bounds, webkitIDBCursor.PREV).onsuccess = function(e){
+    var result = e.target.result;
+    if(!!result === true){
+      results.push(new Visit(result.value.visitItem, result.value.historyItem, result.value.children));
+      result.continue();
+    } else{
+      callback(null, results);
+    }
+  };
+};
+
+Visit.count = function(callback){
+  var db = Visit.db;
+  var trans = db.transaction(["visits"], 'read');
+  var store = trans.objectStore("visits");
+  store.count.onsuccess = function(e){
+    callback(e.target.result);
+  };
+}
+
 var SessionedHistory = Class.create({
   initialize: function (historyItems, start, end, callback) {
-    this.baseVisits = [];
-    this.indexedReferringVisits = {};
     this.callback = callback.bind(this, start, end);
     this._setVisits(historyItems);
     this.historyData = historyData();
@@ -187,12 +227,13 @@ var SessionedHistory = Class.create({
       historyItem = historyItems[i];
       indexedHistoryItems[historyItem.url] = historyItem;
       chrome.history.getVisits({ url: historyItem.url}, function (visitItems) {
-        var j, visitItem, url = this.args[0].url;
+        var j, visitItem, visitObj, url = this.args[0].url;
         visitsCallbackCount = visitsCallbackCount + 1;
         for (j = 0; j < visitItems.length; j = j + 1) {
           visitItem = visitItems[j];
           if(visitItem.visitTime >= that.start && visitItem.visitTime <= that.end){
-            that.historyData.addVisit(new Visit(visitItem, indexedHistoryItems[url]));
+            visitObj = new Visit(visitItem, indexedHistoryItems[url]);
+            that.historyData.addVisit(visitObj);
           }
         }
         if (visitsCallbackCount === historyItems.length) {

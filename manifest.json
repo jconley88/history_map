@@ -7,7 +7,7 @@
     "history": "src/history.html"
   },
   "background": {
-    "scripts": ["src/log_tab_urls.js", "vendor/prototype.js"]
+    "scripts": ["vendor/prototype.js", "vendor/async.js", "src/log_tab_urls.js", "src/history_list.js"]
   },
   "permissions": [
     "history", "chrome://favicon/", "tabs", "webNavigation", "storage"

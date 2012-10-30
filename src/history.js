@@ -1,16 +1,13 @@
 //"use strict";
-
+var startTime = (new Date()).setHours(0,0,0,0);
+var endTime = Date.now();
 var microsecondsPerDay = 1000 * 60 * 60 * 24;
 var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 document.observe('dom:loaded', function(){
-  var moreHistory;
-  var startTime = (new Date()).setHours(0,0,0,0);
-  var endTime = Date.now();
-  getHistory(startTime, endTime);
-
-  moreHistory = document.getElementsByClassName('moreHistory')[0];
+  var backgroundPage = chrome.extension.getBackgroundPage();
+  var moreHistory = document.getElementsByClassName('moreHistory')[0];
   moreHistory.addEventListener('click', function(e){
     e.preventDefault();
     var start = this.getAttribute('start');
@@ -18,6 +15,10 @@ document.observe('dom:loaded', function(){
     getHistory(parseInt(start), parseInt(end));
     return false;
   });
+  async.waterfall([
+    async.apply(backgroundPage.Visit.getByDate, startTime, endTime),
+    async.apply(displayHistory, startTime, endTime)
+  ])
 });
 
 function formatAMPM(date) {
@@ -173,7 +174,7 @@ function createDateHeader(headerTag, date) {
 }
 
 function outputChildren(root, level) {
-  var i, child, siteElement, siteList, children
+  var i, child, siteElement, siteList, children,
       children = root.children;
   if (children) {
     siteList = createSiteList(level);
@@ -193,34 +194,23 @@ function displayHistory(start, end, baseVisits) {
       domainList = document.getElementById('domainList'),
       moreHistory = document.getElementsByClassName('moreHistory')[0];
   baseVisits.each(function (root, i) {
-    if (i === 0 || (root.visitTime.toDateString() !== previousDate)) {
-      var dateHeader = createDateHeader('h3', root.visitTime);
+    if (i === 0 || (root.visitDate.toDateString() !== previousDate)) {
+      var dateHeader = createDateHeader('h3', root.visitDate);
       domainList.appendChild(dateHeader);
-      previousDate = root.visitTime.toDateString();
+      previousDate = root.visitDate.toDateString();
     }
-    domainElement = createDomainElement(root.historyItem, root.visitTime, root.childrenCount());
+    domainElement = createDomainElement(root.historyItem, root.visitDate, root.childrenCount());
     children = outputChildren(root, level);
-    domainElement.appendChild(children);
+    if(children){
+      domainElement.appendChild(children)
+    }
     domainList.appendChild(domainElement);
   });
   moreHistory.setAttribute('start', start - microsecondsPerDay);
   moreHistory.setAttribute('end', start);
 }
 
-//Ideally we want ALL history, but the function is buggy and I couldn't
-//get it to return all available history
-function getHistory(startTime, endTime){
-  chrome.history.search(
-    {
-      'maxResults': 0,
-      'text': '',
-      'startTime': startTime,
-      'endTime': endTime
-    },
-    function (historyItems) {
-      new SessionedHistory(historyItems, startTime, endTime, displayHistory);
-    });
-}
+
 
 //      var domainName = history['order'][i];
 //      var domainLastVisit = new Date(history['history'][domainName]['lastVisitTime']);
