@@ -92,13 +92,13 @@ function createChildrenCountEl(childrenCount) {
   return countEl;
 }
 
-function createDomainTitle(historyItem, firstSite) {
+function createDomainTitle(visit) {
   var domainName, url, title;
-  url = historyItem.url;
-  domainName = historyItem.title || url;
+  url = visit.url;
+  domainName = visit.title || url;
   title = document.createElement('a');
   title.className = "title";
-  title.setAttribute('style', "background-image: url(\"chrome://favicon/" + firstSite + "\");");
+  title.setAttribute('style', "background-image: url(\"chrome://favicon/" + url + "\");");
   title.setAttribute('href', url);
   title.appendChild(document.createTextNode(domainName));
   return title;
@@ -127,18 +127,18 @@ function createSiteTitle(site) {
   siteEl.appendChild(title);
   return siteEl;
 }
-function createDomainElement(historyItem, visitTime, childrenCount) {
-  var childrenCountEl, domainTime = createTimeElement(visitTime), domainTitle = createDomainTitle(historyItem, historyItem.url), domainEntry = createDomainListItem(), arrow = createArrow();
+function createDomainElement(visit) {
+  var childrenCountEl, domainTime = createTimeElement(visit.visitDate), domainTitle = createDomainTitle(visit), domainEntry = createDomainListItem(), arrow = createArrow();
   domainEntry.appendChild(domainTime);
 
-  if (childrenCount === 0) {
+  if (visit.childrenCount() === 0) {
     arrow.classList.add('hidden');
   }
   domainEntry.appendChild(arrow);
 
   domainEntry.appendChild(domainTitle);
-  if (childrenCount > 0) {
-    childrenCountEl = createChildrenCountEl(childrenCount);
+  if (visit.childrenCount() > 0) {
+    childrenCountEl = createChildrenCountEl(visit.childrenCount());
     domainEntry.appendChild(childrenCountEl);
   }
   return domainEntry;
@@ -180,7 +180,7 @@ function outputChildren(root, level) {
     siteList = createSiteList(level);
     for (i = 0; i < children.length; i = i + 1) {
       child = children[i];
-      siteElement = createSiteElement(child.historyItem);
+      siteElement = createSiteElement(child);
       siteList.appendChild(siteElement);
       siteList.appendChild(outputChildren(child, level + 1));
     }
@@ -199,7 +199,7 @@ function displayHistory(start, end, baseVisits) {
       domainList.appendChild(dateHeader);
       previousDate = root.visitDate.toDateString();
     }
-    domainElement = createDomainElement(root.historyItem, root.visitDate, root.childrenCount());
+    domainElement = createDomainElement(root);
     children = outputChildren(root, level);
     if(children){
       domainElement.appendChild(children)

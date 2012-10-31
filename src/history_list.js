@@ -8,7 +8,7 @@ function historyData() {
 
   function addVisit (visit) {
     var irv;
-    switch (visit.visitItem.transition) {
+    switch (visit.transition) {
     case 'generated':
     case 'typed':
     case 'start_page':
@@ -16,7 +16,7 @@ function historyData() {
       baseVisits.push(visit);
       break;
     default:
-      irv = indexedReferringVisits[visit.visitItem.referringVisitId] = $A(indexedReferringVisits[visit.visitItem.referringVisitId]);
+      irv = indexedReferringVisits[visit.referringVisitId] = $A(indexedReferringVisits[visit.referringVisitId]);
       irv.push(visit);
     }
     visits[visit.visitId] = visit;
@@ -142,7 +142,7 @@ var Visit = Class.create({
     var db = Visit.db;
     var trans = db.transaction(["visits"], 'readwrite');
     var store = trans.objectStore("visits");
-    console.log(this);
+//    console.log(this);
     store.put(this);
   },
   _childrenCount: function (visit) {
@@ -158,23 +158,6 @@ var Visit = Class.create({
     return count;
   }
 });
-
-var dbVersion = 10;
-var request = webkitIndexedDB.open("history_map", dbVersion);
-request.onsuccess = function(e) {
-  console.log(e);
-  Visit.db = e.target.result;
-  if (Visit.db.setVersion) {
-    if (Visit.db.version != dbVersion) {
-      var setVersion = Visit.db.setVersion(dbVersion);
-      setVersion.onsuccess = function () {
-        var store = e.target.result.createObjectStore("visits", {keyPath: "visitTime"});
-        store.createIndex("url", "url", { unique: false });
-        store.createIndex("visitId", "visitId", { unique: true });
-      };
-    }
-  }
-};
 
 Visit.getByDate = function(start, end, callback){
   var db = Visit.db;
@@ -231,7 +214,7 @@ var SessionedHistory = Class.create({
         for (j = 0; j < visitItems.length; j = j + 1) {
           visitItem = visitItems[j];
           if(visitItem.visitTime >= that.start && visitItem.visitTime <= that.end){
-            visitObj = new Visit(visitItem.extend(indexedHistoryItems[url]));
+            visitObj = new Visit(Object.extend(visitItem, indexedHistoryItems[url]));
             that.historyData.addVisit(visitObj);
           }
         }
