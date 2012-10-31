@@ -121,16 +121,16 @@ function historyData() {
 }
 
 var Visit = Class.create({
-  initialize: function (visitItem, historyItem, children) {
-    this.visitId = visitItem.visitId;
-    this.referringVisitId = visitItem.referringVisitId;
-    this.transition = visitItem.transition;
-    this.visitTime = visitItem.visitTime;
-    this.url = historyItem.url;
-    this.title = historyItem.title;
+  initialize: function (obj) {
+    this.visitId = obj.visitId;
+    this.referringVisitId = obj.referringVisitId;
+    this.transition = obj.transition;
+    this.visitTime = obj.visitTime;
+    this.url = obj.url;
+    this.title = obj.title;
 
-    this.visitDate = new Date(visitItem.visitTime);
-    this.setChildren(children);
+    this.visitDate = new Date(obj.visitTime);
+    this.setChildren(obj.children);
   },
   setChildren: function (children) {
     this.children = children || [];
@@ -191,7 +191,7 @@ Visit.getByDate = function(start, end, callback){
   store.openCursor(bounds, webkitIDBCursor.PREV).onsuccess = function(e){
     var result = e.target.result;
     if(!!result === true){
-      results.push(new Visit(result.value.visitItem, result.value.historyItem, result.value.children));
+      results.push(new Visit(result.value));
       result.continue();
     } else{
       callback(null, results);
@@ -231,7 +231,7 @@ var SessionedHistory = Class.create({
         for (j = 0; j < visitItems.length; j = j + 1) {
           visitItem = visitItems[j];
           if(visitItem.visitTime >= that.start && visitItem.visitTime <= that.end){
-            visitObj = new Visit(visitItem, indexedHistoryItems[url]);
+            visitObj = new Visit(visitItem.extend(indexedHistoryItems[url]));
             that.historyData.addVisit(visitObj);
           }
         }

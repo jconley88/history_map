@@ -1,66 +1,59 @@
 describe("Visit", function() {
-  var visitItem;
-  var historyItem;
+  var obj;
   var visit;
 
   beforeEach(function() {
-    visitItem = {
+    obj = {
       id: "3083",
       referringVisitId: "69346",
       transition: "link",
       visitId: "69347",
-      visitTime: 1351628501393.405
-    };
-    historyItem = {
-      id: "3083",
-      lastVisitTime: 1351628501393.405,
+      visitTime: 1351628501393.405,
       title: "craigslist: philadelphia classifieds for jobs, apartments, personals, for sale, services, community, and events",
-      typedCount: 2,
-      url: "http://philadelphia.craigslist.org/",
-      visitCount: 23
+      url: "http://philadelphia.craigslist.org/"
     };
-    visit = new Visit(visitItem, historyItem);
+    visit = new Visit(obj);
   });
 
   describe("visitId", function() {
     it("should return the original visitId", function() {
-      expect(visit.visitId).toEqual(visitItem.visitId);
+      expect(visit.visitId).toEqual(obj.visitId);
     });
   });
 
   describe("transition", function() {
     it("should return the original transition", function() {
-      expect(visit.transition).toEqual(visitItem.transition);
+      expect(visit.transition).toEqual(obj.transition);
     });
   });
 
   describe("referringVisitId", function() {
     it("should return the original referringVisitId", function() {
-      expect(visit.referringVisitId).toEqual(visitItem.referringVisitId);
+      expect(visit.referringVisitId).toEqual(obj.referringVisitId);
     });
   });
 
   describe("visitTime", function() {
     it("should return the original visitTime", function() {
-      expect(visit.visitTime).toEqual(visitItem.visitTime);
+      expect(visit.visitTime).toEqual(obj.visitTime);
     });
   });
 
   describe("visitDate", function() {
     it("should return the original visitDate", function() {
-      expect(visit.visitDate).toEqual(new Date(visitItem.visitTime));
+      expect(visit.visitDate).toEqual(new Date(obj.visitTime));
     });
   });
 
   describe("url", function() {
     it("should return the original url", function() {
-      expect(visit.url).toEqual(historyItem.url);
+      expect(visit.url).toEqual(obj.url);
     });
   });
 
   describe("title", function() {
     it("should return the original title", function() {
-      expect(visit.title).toEqual(historyItem.title);
+      expect(visit.title).toEqual(obj.title);
     });
   });
 
