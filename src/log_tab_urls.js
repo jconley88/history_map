@@ -12,27 +12,9 @@ var links = linkedTabs();
 //  }
 //});
 
-var dbVersion = 10;
-var request = webkitIndexedDB.open("history_map", dbVersion);
-request.onsuccess = function(e) {
-  console.log(e);
-  Visit.db = e.target.result;
-
-  var startTime = (new Date()).setHours(0,0,0,0);
-  var endTime = Date.now();
-  getHistory(startTime, endTime);
-
-  if (Visit.db.setVersion) {
-    if (Visit.db.version != dbVersion) {
-      var setVersion = Visit.db.setVersion(dbVersion);
-      setVersion.onsuccess = function () {
-        var store = e.target.result.createObjectStore("visits", {keyPath: "visitTime"});
-        store.createIndex("url", "url", { unique: false });
-        store.createIndex("visitId", "visitId", { unique: true });
-      };
-    }
-  }
-};
+var startTime = (new Date()).setHours(0,0,0,0);
+var endTime = Date.now();
+getHistory(startTime, endTime);
 
 //Ideally we want ALL history, but the function is buggy and I couldn't
 //get it to return all available history

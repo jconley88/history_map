@@ -159,36 +159,69 @@ var Visit = Class.create({
   }
 });
 
-Visit.getByDate = function(start, end, callback){
-  var db = Visit.db;
-  var trans = db.transaction(["visits"], 'readwrite');
-  var store = trans.objectStore("visits");
-  var bounds = webkitIDBKeyRange.bound(start, end, false, true);
-  results = [];
-  results.eachWithIndex = function(callback){
-    var i;
-    for (i = 0; i < this.length; i = i + 1) {
-      callback(this[i], i);
-    }
+Visit.connectToDb = function(){
+  if(Visit.db){
+    //do nothing
+  } else {
+    var dbVersion = 10;
+    var request = webkitIndexedDB.open("history_map", dbVersion);
+    request.onsuccess = function(e) {
+      console.log(e);
+      Visit.db = e.target.result;
+
+      if (Visit.db.setVersion) {
+        if (Visit.db.version != dbVersion) {
+          var setVersion = Visit.db.setVersion(dbVersion);
+          setVersion.onsuccess = function () {
+            var store = e.target.result.createObjectStore("visits", {keyPath: "visitTime"});
+            store.createIndex("url", "url", { unique: false });
+            store.createIndex("visitId", "visitId", { unique: true });
+          };
+        }
+      }
+    };
   }
-  store.openCursor(bounds, webkitIDBCursor.PREV).onsuccess = function(e){
-    var result = e.target.result;
-    if(!!result === true){
-      results.push(new Visit(result.value));
-      result.continue();
-    } else{
-      callback(null, results);
+};
+
+Visit.getByDate = function(start, end, callback){
+  async.series([
+      Visit.connectToDb
+    ], function(){
+      var db = Visit.db;
+      var trans = db.transaction(["visits"], 'readwrite');
+      var store = trans.objectStore("visits");
+      var bounds = webkitIDBKeyRange.bound(start, end, false, true);
+      results = [];
+      results.eachWithIndex = function(callback){
+        var i;
+        for (i = 0; i < this.length; i = i + 1) {
+          callback(this[i], i);
+        }
+      };
+      store.openCursor(bounds, webkitIDBCursor.PREV).onsuccess = function(e){
+        var result = e.target.result;
+        if(!!result === true){
+          results.push(new Visit(result.value));
+          result.continue();
+        } else{
+          callback(null, results);
+        }
+      };
     }
-  };
+  );
 };
 
 Visit.count = function(callback){
-  var db = Visit.db;
-  var trans = db.transaction(["visits"], 'read');
-  var store = trans.objectStore("visits");
-  store.count.onsuccess = function(e){
-    callback(e.target.result);
-  };
+  async.series([
+    Visit.connectToDb
+  ], function(){
+    var db = Visit.db;
+    var trans = db.transaction(["visits"]);
+    var store = trans.objectStore("visits");
+    store.count.onsuccess = function(e){
+      callback(e.target.result);
+    }
+  });
 }
 
 var SessionedHistory = Class.create({
