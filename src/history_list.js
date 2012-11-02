@@ -139,11 +139,13 @@ var Visit = Class.create({
     return this._childrenCount(this);
   },
   save: function() {
-    var db = Visit.db;
-    var trans = db.transaction(["visits"], 'readwrite');
-    var store = trans.objectStore("visits");
-//    console.log(this);
-    store.put(this);
+    var self = this;
+    Visit.objectStore(function(store){
+      var r = store.put(self);
+      r.onerror = function(e){
+        console.log(e.target.error.name + ": " + self + "cannot be saved");
+      };
+    });
   },
   _childrenCount: function (visit) {
     var that = this, count = 0;
@@ -159,70 +161,85 @@ var Visit = Class.create({
   }
 });
 
-Visit.connectToDb = function(){
+Visit.connectToDb = function(callback){
   if(Visit.db){
     //do nothing
   } else {
-    var dbVersion = 10;
+    var dbVersion = 14;
     var request = webkitIndexedDB.open("history_map", dbVersion);
     request.onsuccess = function(e) {
-      console.log(e);
       Visit.db = e.target.result;
 
-      if (Visit.db.setVersion) {
-        if (Visit.db.version != dbVersion) {
-          var setVersion = Visit.db.setVersion(dbVersion);
-          setVersion.onsuccess = function () {
-            var store = e.target.result.createObjectStore("visits", {keyPath: "visitTime"});
-            store.createIndex("url", "url", { unique: false });
-            store.createIndex("visitId", "visitId", { unique: true });
-          };
-        }
+      if (Visit.db.version < dbVersion) {
+        var setVersion = Visit.db.setVersion(dbVersion);
+        setVersion.onsuccess = function (e) {
+          console.log(e);
+          var store = e.target.result.createObjectStore("visits", {keyPath: "visitTime"});
+          store.createIndex("url", "url", { unique: false });
+          store.deleteIndex('visitId');
+          store.createIndex("visitId", "visitId", { unique: false });
+        };
+        setVersion.onerror = function(e){
+          console.log('There was an error setting the version of the db: ' + e);
+        };
+        setVersion.onblocked = function(e){
+          console.log('The db version cannot be modified because there is an open connection to the db somewhere: ' + e);
+        };
+
+      }
+      if(callback){
+        callback();
       }
     };
   }
 };
 
 Visit.getByDate = function(start, end, callback){
-  async.series([
-      Visit.connectToDb
-    ], function(){
-      var db = Visit.db;
-      var trans = db.transaction(["visits"], 'readwrite');
-      var store = trans.objectStore("visits");
-      var bounds = webkitIDBKeyRange.bound(start, end, false, true);
-      results = [];
-      results.eachWithIndex = function(callback){
-        var i;
-        for (i = 0; i < this.length; i = i + 1) {
-          callback(this[i], i);
-        }
-      };
-      store.openCursor(bounds, webkitIDBCursor.PREV).onsuccess = function(e){
-        var result = e.target.result;
-        if(!!result === true){
-          results.push(new Visit(result.value));
-          result.continue();
-        } else{
-          callback(null, results);
-        }
-      };
-    }
-  );
+  Visit.objectStore( function(store){
+    var bounds = webkitIDBKeyRange.bound(start, end, false, true);
+    results = [];
+    results.eachWithIndex = function(callback){
+      var i;
+      for (i = 0; i < this.length; i = i + 1) {
+        callback(this[i], i);
+      }
+    };
+    store.openCursor(bounds, 'prev').onsuccess = function(e){
+      var result = e.target.result;
+      if(!!result === true){
+        results.push(new Visit(result.value));
+        result.continue();
+      } else{
+        callback(null, results);
+      }
+    };
+  });
 };
 
 Visit.count = function(callback){
-  async.series([
-    Visit.connectToDb
-  ], function(){
-    var db = Visit.db;
-    var trans = db.transaction(["visits"]);
-    var store = trans.objectStore("visits");
-    store.count.onsuccess = function(e){
-      callback(e.target.result);
-    }
+  Visit.objectStore( function(store){
+    var keyRange = webkitIDBKeyRange.lowerBound(0);
+    var cursorRequest = store.openCursor(keyRange);
+    cursorRequest.onsuccess = function(e){
+      var result = e.target.result;
+      if(result) {
+        result.continue();
+      }
+    };
+    cursorRequest.onerror = function(e){
+      callback(e);
+    };
   });
-}
+};
+
+Visit.objectStore = function(callback){
+  Visit.connectToDb(function(){
+    var db = Visit.db;
+    var trans = db.transaction(["visits"], 'readwrite');
+    var store = trans.objectStore("visits");
+    callback(store);
+  });
+};
 
 var SessionedHistory = Class.create({
   initialize: function (historyItems, start, end, callback) {
