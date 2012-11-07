@@ -163,7 +163,9 @@ var Visit = Class.create({
 
 Visit.connectToDb = function(callback){
   if(Visit.db){
-    //do nothing
+    if(callback){
+      callback();
+    }
   } else {
     var dbVersion = 14;
     var request = webkitIndexedDB.open("history_map", dbVersion);
@@ -219,15 +221,9 @@ Visit.getByDate = function(start, end, callback){
 Visit.count = function(callback){
   Visit.objectStore( function(store){
     var keyRange = webkitIDBKeyRange.lowerBound(0);
-    var cursorRequest = store.openCursor(keyRange);
+    var cursorRequest = store.count(keyRange);
     cursorRequest.onsuccess = function(e){
-      var result = e.target.result;
-      if(result) {
-        result.continue();
-      }
-    };
-    cursorRequest.onerror = function(e){
-      callback(e);
+      callback(e.target.result);
     };
   });
 };
