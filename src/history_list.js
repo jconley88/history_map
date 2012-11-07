@@ -212,7 +212,7 @@ Visit.count = function(callback){
 Visit.objectStore = function(callback){
   Visit.connectToDb(function(){
     var db = Visit.db;
-    var trans = db.transaction(["visits"], 'readwrite');
+    var trans = db.transaction("visits", 'readwrite');
     var store = trans.objectStore("visits");
     callback(store);
   });
