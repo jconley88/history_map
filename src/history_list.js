@@ -167,28 +167,16 @@ Visit.connectToDb = function(callback){
       callback();
     }
   } else {
-    var dbVersion = 14;
+    var dbVersion = 18;
     var request = webkitIndexedDB.open("history_map", dbVersion);
+    request.onupgradeneeded = function(e) {
+      console.log(e);
+      var store = e.target.result.createObjectStore("visits", {keyPath: "visitTime"});
+      store.createIndex("url", "url", { unique: false });
+      store.createIndex("visitId", "visitId", { unique: false });
+    }
     request.onsuccess = function(e) {
       Visit.db = e.target.result;
-
-      if (Visit.db.version < dbVersion) {
-        var setVersion = Visit.db.setVersion(dbVersion);
-        setVersion.onsuccess = function (e) {
-          console.log(e);
-          var store = e.target.result.createObjectStore("visits", {keyPath: "visitTime"});
-          store.createIndex("url", "url", { unique: false });
-          store.deleteIndex('visitId');
-          store.createIndex("visitId", "visitId", { unique: false });
-        };
-        setVersion.onerror = function(e){
-          console.log('There was an error setting the version of the db: ' + e);
-        };
-        setVersion.onblocked = function(e){
-          console.log('The db version cannot be modified because there is an open connection to the db somewhere: ' + e);
-        };
-
-      }
       if(callback){
         callback();
       }
