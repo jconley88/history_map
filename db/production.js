@@ -1,0 +1,1 @@
+var DB_NAME = "history_map";

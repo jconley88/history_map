@@ -167,14 +167,7 @@ Visit.connectToDb = function(callback){
       callback();
     }
   } else {
-    var dbVersion = 18;
-    var request = webkitIndexedDB.open("history_map", dbVersion);
-    request.onupgradeneeded = function(e) {
-      console.log(e);
-      var store = e.target.result.createObjectStore("visits", {keyPath: "visitTime"});
-      store.createIndex("url", "url", { unique: false });
-      store.createIndex("visitId", "visitId", { unique: false });
-    }
+    var request = webkitIndexedDB.open(DB_NAME);
     request.onsuccess = function(e) {
       Visit.db = e.target.result;
       if(callback){
