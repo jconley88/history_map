@@ -13,7 +13,8 @@
                   "db/production.js",
                   "db/schema.js",
                   "src/log_tab_urls.js",
-                  "src/history_list.js"
+                  "src/visit_model.js",
+                  "src/load_chrome_history.js"
                ]
   },
   "permissions": [

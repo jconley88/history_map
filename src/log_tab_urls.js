@@ -4,36 +4,6 @@ var tabTimeStamps = tabTimeStampTracker();
 var other = createSomethingOrOther();
 var links = linkedTabs();
 
-//Visit.count(function(count){
-//  if(count === 0){
-//    var startTime = (new Date(1960, 0, 1));
-//    var endTime = Date.now();
-//    getHistory(startTime, endTime);
-//  }
-//});
-
-var startTime = (new Date()).setHours(0,0,0,0);
-var endTime = Date.now();
-getHistory(startTime, endTime);
-
-//Ideally we want ALL history, but the function is buggy and I couldn't
-//get it to return all available history
-function getHistory(startTime, endTime){
-  chrome.history.search(
-    {
-      'maxResults': 0,
-      'text': '',
-      'startTime': startTime,
-      'endTime': endTime
-    },
-    function (historyItems) {
-      new SessionedHistory(historyItems, startTime, endTime, function(){});
-      //TODO, set a flag when it is done and don't show data until it is done. instead, show a spinner
-    });
-}
-
-
-
 tabTimeStamps.startTracking();
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
