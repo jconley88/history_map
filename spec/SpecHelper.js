@@ -29,7 +29,7 @@ function asyncHelper(asyncMethod, callback, afterCallback){
 
    waitsFor(function(){
      return isDone();
-   });
+   }, "The callback passed to asyncMethod was not called within the allotted time out", 50);
    runs(function(){
      afterCallback();
    })
