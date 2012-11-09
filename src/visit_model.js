@@ -8,15 +8,30 @@ var Visit = Class.create({
     this.visitTime = obj.visitTime;
     this.url = obj.url;
     this.title = obj.title;
-
+    this.childrenIds = obj.childrenIds || [];
     this.visitDate = new Date(obj.visitTime);
-    this.setChildren(obj.children);
+  },
+  getChildren: function(callback) {
+    var self = this;
+    if(this.children){
+      callback(this.children);
+    } else {
+      Visit.find(this.childrenIds, function(children){
+        self.children = children;
+        callback(self.children);
+      });
+    }
   },
   setChildren: function (children) {
-    this.children = children || [];
+    var ids = [];
+    $A(children).each(function(child){
+      ids.push(child.visitTime);
+    });
+    this.childrenIds = ids;
+    this.children = children;
   },
   childrenCount: function () {
-    return this._childrenCount(this);
+    return this.childrenIds.length;
   },
   save: function() {
     var self = this;
@@ -26,18 +41,6 @@ var Visit = Class.create({
         console.log(e.target.error.name + ": " + self + "cannot be saved");
       };
     });
-  },
-  _childrenCount: function (visit) {
-    var that = this, count = 0;
-    if (visit.children) {
-      count = count + visit.children.length;
-      if (visit.children.length > 0) {
-        visit.children.each(function (child) {
-          count = count + that._childrenCount(child);
-        });
-      }
-    }
-    return count;
   }
 });
 
@@ -57,6 +60,36 @@ Visit.connectToDb = function(callback){
   }
 };
 
+Visit.find = function(ids, callback){
+  var count = 0;
+  var results = [];
+  $A(ids).each(function(id){
+    Visit.objectStore(function(store){
+      var request = store.get(id);
+      request.onsuccess = function(e){
+        var result = e.target.result;
+        results.push(Visit.load(result));
+        count++;
+        if(count === ids.length){
+          callback(results);
+        }
+      };
+      request.onerror = function(){
+        results.push(Visit.load());
+        count++;
+        if(count === ids.length){
+          callback(results);
+        }
+      };
+    });
+  });
+};
+
+Visit.load = function(obj){
+  obj = obj || {};
+  return new Visit(obj);
+};
+
 Visit.getByDate = function(start, end, callback){
   Visit.objectStore( function(store){
     var bounds = webkitIDBKeyRange.bound(start, end, false, true);
@@ -70,7 +103,7 @@ Visit.getByDate = function(start, end, callback){
     store.openCursor(bounds, 'prev').onsuccess = function(e){
       var result = e.target.result;
       if(!!result === true){
-        results.push(new Visit(result.value));
+        results.push(Visit.load(result.value));
         result.continue();
       } else{
         callback(null, results);

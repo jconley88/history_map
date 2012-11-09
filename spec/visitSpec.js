@@ -57,6 +57,44 @@ describe("Visit", function() {
     });
   });
 
+  describe("setChildren", function() {
+    it("should save the visitTime's of the children in the childrenIds array", function() {
+      var child_1 = new Visit({visitTime: 1000000000001});
+      var child_2 = new Visit({visitTime: 1000000000002});
+      visit.setChildren([child_1, child_2]);
+      expect(visit.childrenIds).toEqual([1000000000001, 1000000000002]);
+    });
+  });
+
+  describe("childrenCount", function() {
+    it("should return the length of the childrenIds array", function() {
+      var child_1 = new Visit({visitTime: 1});
+      var child_2 = new Visit({visitTime: 2});
+      visit.setChildren([child_1, child_2]);
+      expect(visit.childrenCount()).toEqual(2);
+    });
+  });
+
+  describe("getChildren", function() {
+    it("should return an array of the child visit objects when children are already loaded", function() {
+      var children;
+      var done = false;
+      var child_1 = new Visit({visitTime: 1});
+      var child_2 = new Visit({visitTime: 2});
+      visit.setChildren([child_1, child_2]);
+      visit.getChildren(function(c){
+        children = c;
+        done = true;
+      });
+      waitsFor(function(){
+        return done;
+      });
+      runs(function(){
+        expect(children).toEqual([child_1, child_2]);
+      })
+    });
+  });
+
   describe("integration", function(){
     var visit2, visit3, visit4;
 
@@ -103,13 +141,40 @@ describe("Visit", function() {
         };
         run = function(){
           expect(visitsByDate.some(function(v){
-            v.visitTime === visit2.visitTime})).toBeTruthy;
-          expect(visitsByDate.some(function(v){v.visitTime === visit3.visitTime})).toBeTruthy;
+            return v.visitTime === visit2.visitTime})).toBeTruthy();
+          expect(visitsByDate.some(function(v){return v.visitTime === visit3.visitTime})).toBeTruthy();
           expect(visitsByDate.length).toEqual(2);
         };
 
         var bound = Visit.getByDate.bind(Visit, start, end);
         asyncHelper(bound, waitFor, run);
+      });
+    });
+
+    describe("getChildren", function() {
+      it("should return an array of the child visit objects when children have not been loaded", function() {
+        var children;
+        var done = false;
+        visit.childrenIds = [visit2.visitTime, visit3.visitTime];
+        visit.getChildren(function(c){
+          children = c;
+          done = true;
+        });
+        waitsFor(function(){
+          return done;
+        });
+        runs(function(){
+          expect(
+            children.some(function(child){
+              return child.visitTime === visit2.visitTime;
+            })
+          ).toBeTruthy();
+          expect(
+            children.some(function(child){
+              return child.visitTime === visit3.visitTime;
+            })
+          ).toBeTruthy();
+        });
       });
     });
   });
