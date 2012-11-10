@@ -2,9 +2,6 @@
 
 var Visit = Class.create({
   initialize: function (obj) {
-    if(obj.id){
-      this.id = obj.id;
-    }
     this.visitId = obj.visitId;
     this.referringVisitId = obj.referringVisitId;
     this.transition = obj.transition;
@@ -121,8 +118,11 @@ Visit.find = function(ids, callback){
 };
 
 Visit.load = function(obj){
+  var visit;
   obj = obj || {};
-  return new Visit(obj);
+  visit = new Visit(obj);
+  visit.id = obj.id;
+  return visit;
 };
 
 Visit.getByDate = function(start, end, callback){
