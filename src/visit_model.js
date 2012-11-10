@@ -22,17 +22,6 @@ var Visit = Class.create({
       });
     }
   },
-//  setChildren: function (children) {
-//    var self = this;
-//    $A(children).each(function(child){
-//      if(child.visitTime === self.visitTime){
-//        //Do not allow a visit to be a child of itself
-//      } else {
-//        self.childrenIds.push(child.visitTime);
-//        self.children.push(child);
-//      }
-//    });
-//  },
   setChildren: function (children) {
     var self = this;
     if(this.children){
@@ -48,8 +37,6 @@ var Visit = Class.create({
         self.children.push(child);
       }
     });
-//    this.childrenIds = ids;
-//    this.children = children;
   },
   childrenCount: function () {
     return this.childrenIds.length;
