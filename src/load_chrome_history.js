@@ -153,7 +153,6 @@ function historyData() {
       }
       base.setChildren(children);
     }
-    base.save();
   }
   function sortBaseVisits(callback) {
     //TODO update to sort this by the time of the most recently accessed page in this session
