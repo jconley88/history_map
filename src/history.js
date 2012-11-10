@@ -173,19 +173,22 @@ function createDateHeader(headerTag, date) {
   return dateHeader;
 }
 
-function outputChildren(root, level) {
-  var i, child, siteElement, siteList, children,
-      children = root.children;
-  if (children) {
-    siteList = createSiteList(level);
-    for (i = 0; i < children.length; i = i + 1) {
-      child = children[i];
-      siteElement = createSiteElement(child);
-      siteList.appendChild(siteElement);
-      siteList.appendChild(outputChildren(child, level + 1));
+function outputChildren(root, level, appendTo) {
+  var i, child, siteElement, siteList;
+  root.getChildren(function(children){
+    if (children) {
+      siteList = createSiteList(level);
+      for (i = 0; i < children.length; i = i + 1) {
+        child = children[i];
+        siteElement = createSiteElement(child);
+        siteList.appendChild(siteElement);
+        outputChildren(child, level + 1, siteList);
+      }
+      if(appendTo){
+        appendTo.appendChild(siteList)
+      }
     }
-  }
-  return siteList;
+  });
 }
 
 function displayHistory(start, end, baseVisits) {
@@ -200,10 +203,7 @@ function displayHistory(start, end, baseVisits) {
       previousDate = root.visitDate.toDateString();
     }
     domainElement = createDomainElement(root);
-    children = outputChildren(root, level);
-    if(children){
-      domainElement.appendChild(children)
-    }
+    outputChildren(root, level, domainElement);
     domainList.appendChild(domainElement);
   });
   moreHistory.setAttribute('start', start - microsecondsPerDay);

@@ -151,10 +151,9 @@ function historyData() {
         child = children[i];
         setChildren(child);
       }
-      base.children = children;
-    } else {
-      base.children = [];
+      base.setChildren(children);
     }
+    base.save();
   }
   function sortBaseVisits(callback) {
     //TODO update to sort this by the time of the most recently accessed page in this session

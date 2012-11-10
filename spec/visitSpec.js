@@ -4,7 +4,6 @@ describe("Visit", function() {
 
   beforeEach(function() {
     obj = {
-      id: "1000",
       referringVisitId: "9999",
       transition: "link",
       visitId: "10000",
@@ -57,12 +56,25 @@ describe("Visit", function() {
     });
   });
 
+  describe("childrenIds", function(){
+    it("should return an empty array if no children have been set", function(){
+      expect(visit.childrenIds).toEqual([]);
+    });
+  });
+
   describe("setChildren", function() {
-    it("should save the visitTime's of the children in the childrenIds array", function() {
-      var child_1 = new Visit({visitTime: 1000000000001});
-      var child_2 = new Visit({visitTime: 1000000000002});
+    it("should save the id of the children in the childrenIds array", function() {
+      var child_1 = new Visit({id: 1});
+      var child_2 = new Visit({id: 2});
       visit.setChildren([child_1, child_2]);
-      expect(visit.childrenIds).toEqual([1000000000001, 1000000000002]);
+      expect(visit.childrenIds).toEqual([1, 2]);
+    });
+
+    it("should save the children objects in the children attribute", function() {
+      var child_1 = new Visit({id: 1});
+      var child_2 = new Visit({id: 2});
+      visit.setChildren([child_1, child_2]);
+      expect(visit.children).toEqual([child_1, child_2]);
     });
   });
 
@@ -76,6 +88,21 @@ describe("Visit", function() {
   });
 
   describe("getChildren", function() {
+    it("should return an empty array if no children have been set", function(){
+      var children;
+      var done = false;
+      visit.getChildren(function(c){
+        children = c;
+        done = true;
+      });
+      waitsFor(function(){
+        return done;
+      });
+      runs(function(){
+        expect(children).toEqual([]);
+      });
+    });
+
     it("should return an array of the child visit objects when children are already loaded", function() {
       var children;
       var done = false;
@@ -102,11 +129,13 @@ describe("Visit", function() {
       visit.save();
 
       obj2 = Object.clone(obj);
+      obj2.id = 2;
       obj2.visitTime = 1000000000005;
       visit2 = new Visit(obj2);
       visit2.save();
 
       obj3 = Object.clone(obj);
+      obj3.id = 3;
       obj3.visitTime = 1000000000006;
       visit3 = new Visit(obj3);
       visit3.save();
@@ -115,6 +144,20 @@ describe("Visit", function() {
       obj4.visitTime = 1000000000010;
       visit4 = new Visit(obj4);
       visit4.save();
+    });
+
+    describe("save", function(){
+      it("should assign an id to the instantiated object", function(){
+        visit = new Visit({});
+        visit.save();
+
+        waitsFor(function(){
+          return visit.id;
+        }, "id was never set", 50);
+        runs(function(){
+          expect(visit.id).toBeTruthy();
+        });
+      });
     });
 
     describe("count", function() {
@@ -155,23 +198,23 @@ describe("Visit", function() {
       it("should return an array of the child visit objects when children have not been loaded", function() {
         var children;
         var done = false;
-        visit.childrenIds = [visit2.visitTime, visit3.visitTime];
+        visit.childrenIds = [visit2.id, visit3.id];
         visit.getChildren(function(c){
           children = c;
           done = true;
         });
         waitsFor(function(){
           return done;
-        });
+        }, "children to be returned from the database", 50);
         runs(function(){
           expect(
             children.some(function(child){
-              return child.visitTime === visit2.visitTime;
+              return child.id === visit2.id;
             })
           ).toBeTruthy();
           expect(
             children.some(function(child){
-              return child.visitTime === visit3.visitTime;
+              return child.id === visit3.id;
             })
           ).toBeTruthy();
         });

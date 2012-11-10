@@ -2,6 +2,9 @@
 
 var Visit = Class.create({
   initialize: function (obj) {
+    if(obj.id){
+      this.id = obj.id;
+    }
     this.visitId = obj.visitId;
     this.referringVisitId = obj.referringVisitId;
     this.transition = obj.transition;
@@ -22,24 +25,49 @@ var Visit = Class.create({
       });
     }
   },
+//  setChildren: function (children) {
+//    var self = this;
+//    $A(children).each(function(child){
+//      if(child.visitTime === self.visitTime){
+//        //Do not allow a visit to be a child of itself
+//      } else {
+//        self.childrenIds.push(child.visitTime);
+//        self.children.push(child);
+//      }
+//    });
+//  },
   setChildren: function (children) {
-    var ids = [];
+    var self = this;
+    if(this.children){
+
+    }else{
+      this.children = [];
+    }
     $A(children).each(function(child){
-      ids.push(child.visitTime);
+      if(child.id && (child.id === self.id)){
+        //Do not allow a visit to be a child of itself
+      } else {
+        self.childrenIds.push(child.id);
+        self.children.push(child);
+      }
     });
-    this.childrenIds = ids;
-    this.children = children;
+//    this.childrenIds = ids;
+//    this.children = children;
   },
   childrenCount: function () {
     return this.childrenIds.length;
   },
   save: function() {
+    //TODO don't save the children attribute to the database
     var self = this;
     Visit.objectStore(function(store){
       var r = store.put(self);
       r.onerror = function(e){
         console.log(e.target.error.name + ": " + self + "cannot be saved");
       };
+      r.onsuccess = function(e){
+        self.id = e.target.result;
+      }
     });
   }
 });
@@ -63,19 +91,26 @@ Visit.connectToDb = function(callback){
 Visit.find = function(ids, callback){
   var count = 0;
   var results = [];
+  if(ids.length === 0){
+    callback([]);
+  }
   $A(ids).each(function(id){
     Visit.objectStore(function(store){
       var request = store.get(id);
       request.onsuccess = function(e){
         var result = e.target.result;
-        results.push(Visit.load(result));
-        count++;
-        if(count === ids.length){
-          callback(results);
+        if(result){
+          results.push(Visit.load(result));
+          count++;
+          if(count === ids.length){
+            callback(results);
+          }
+        } else {
+          throw "Visit with id of " + id + " could not be found in the database";
         }
       };
-      request.onerror = function(){
-        results.push(Visit.load());
+      request.onerror = function(e){
+        throw "Visit with id of " + id + " could not be found in the database";
         count++;
         if(count === ids.length){
           callback(results);
@@ -100,7 +135,7 @@ Visit.getByDate = function(start, end, callback){
         callback(this[i], i);
       }
     };
-    store.openCursor(bounds, 'prev').onsuccess = function(e){
+    store.index('visitTime').openCursor(bounds, 'prev').onsuccess = function(e){
       var result = e.target.result;
       if(!!result === true){
         results.push(Visit.load(result.value));
