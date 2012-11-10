@@ -34,30 +34,3 @@ beforeEach(function(){
     return done;
   }, "the database to clear.", 50);
 });
-
-function asyncHelper(asyncMethod, callback, afterCallback){
-   var done = false;
-
-   function wrapper(wrapped){
-     return function(){
-       wrapped.apply(wrapped, arguments);
-       done = true;
-     }
-   }
-   asyncMethod(
-     wrapper(
-       callback
-     )
-   );
-
-   var isDone = function(){
-     return done;
-   };
-
-   waitsFor(function(){
-     return isDone();
-   }, "The callback passed to asyncMethod to be called.", 50);
-   runs(function(){
-     afterCallback();
-   })
- }

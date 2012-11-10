@@ -1,69 +1,64 @@
 describe("Visit", function() {
-  var obj;
-  var visit;
-
-  beforeEach(function() {
-    obj = {
-      referringVisitId: "9999",
-      transition: "link",
-      visitId: "10000",
-      visitTime: 1000000000000,
-      title: "craigslist",
-      url: "http://philadelphia.craigslist.org/"
-    };
-    visit = new Visit(obj);
-  });
 
   describe("visitId", function() {
     it("should return the original visitId", function() {
-      expect(visit.visitId).toEqual(obj.visitId);
+      var visit = new Visit({visitId: 10});
+      expect(visit.visitId).toEqual(10);
     });
   });
 
   describe("transition", function() {
     it("should return the original transition", function() {
-      expect(visit.transition).toEqual(obj.transition);
+      var visit = new Visit({transition: 'link'});
+      expect(visit.transition).toEqual('link');
     });
   });
 
   describe("referringVisitId", function() {
     it("should return the original referringVisitId", function() {
-      expect(visit.referringVisitId).toEqual(obj.referringVisitId);
+      var visit = new Visit({referringVisitId: 10});
+      expect(visit.referringVisitId).toEqual(10);
     });
   });
 
   describe("visitTime", function() {
     it("should return the original visitTime", function() {
-      expect(visit.visitTime).toEqual(obj.visitTime);
+      var visit = new Visit({visitTime: 1000000000000});
+      expect(visit.visitTime).toEqual(1000000000000);
     });
   });
 
   describe("visitDate", function() {
     it("should return the original visitDate", function() {
-      expect(visit.visitDate).toEqual(new Date(obj.visitTime));
+      var visit = new Visit({visitTime: 1000000000000});
+      expect(visit.visitDate).toEqual(new Date(1000000000000));
     });
   });
 
   describe("url", function() {
     it("should return the original url", function() {
-      expect(visit.url).toEqual(obj.url);
+      var visit = new Visit({url: 'http:'});
+      expect(visit.url).toEqual('http:');
     });
   });
 
   describe("title", function() {
     it("should return the original title", function() {
-      expect(visit.title).toEqual(obj.title);
+      var visit = new Visit({title: 'title'});
+      expect(visit.title).toEqual('title');
     });
   });
 
   describe("childrenIds", function(){
     it("should return an empty array if no children have been set", function(){
+      var visit = new Visit({});
       expect(visit.childrenIds).toEqual([]);
     });
   });
 
   describe("setChildren", function() {
     it("should save the id of the children in the childrenIds array", function() {
+      var visit = new Visit({});
       var child_1 = new Visit({id: 1});
       var child_2 = new Visit({id: 2});
       visit.setChildren([child_1, child_2]);
@@ -71,6 +66,7 @@ describe("Visit", function() {
     });
 
     it("should save the children objects in the children attribute", function() {
+      var visit = new Visit({});
       var child_1 = new Visit({id: 1});
       var child_2 = new Visit({id: 2});
       visit.setChildren([child_1, child_2]);
@@ -80,6 +76,7 @@ describe("Visit", function() {
 
   describe("childrenCount", function() {
     it("should return the length of the childrenIds array", function() {
+      var visit = new Visit({});
       var child_1 = new Visit({visitTime: 1});
       var child_2 = new Visit({visitTime: 2});
       visit.setChildren([child_1, child_2]);
@@ -91,6 +88,7 @@ describe("Visit", function() {
     it("should return an empty array if no children have been set", function(){
       var children;
       var done = false;
+      var visit = new Visit({});
       visit.getChildren(function(c){
         children = c;
         done = true;
@@ -106,6 +104,7 @@ describe("Visit", function() {
     it("should return an array of the child visit objects when children are already loaded", function() {
       var children;
       var done = false;
+      var visit = new Visit({});
       var child_1 = new Visit({visitTime: 1});
       var child_2 = new Visit({visitTime: 2});
       visit.setChildren([child_1, child_2]);
@@ -123,29 +122,6 @@ describe("Visit", function() {
   });
 
   describe("integration", function(){
-    var visit2, visit3, visit4;
-
-    beforeEach(function(){
-      visit.save();
-
-      obj2 = Object.clone(obj);
-      obj2.id = 2;
-      obj2.visitTime = 1000000000005;
-      visit2 = new Visit(obj2);
-      visit2.save();
-
-      obj3 = Object.clone(obj);
-      obj3.id = 3;
-      obj3.visitTime = 1000000000006;
-      visit3 = new Visit(obj3);
-      visit3.save();
-
-      obj4 = Object.clone(obj);
-      obj4.visitTime = 1000000000010;
-      visit4 = new Visit(obj4);
-      visit4.save();
-    });
-
     describe("save", function(){
       it("should assign an id to the instantiated object", function(){
         visit = new Visit({});
@@ -163,48 +139,61 @@ describe("Visit", function() {
     describe("count", function() {
       it("should return the number of items in the objectStore", function(){
         var count;
-        waitFor = function (c) {
-                        count = c;
-                      };
-        run = function (){
-          expect(count).toEqual(4);
-        };
-        asyncHelper(Visit.count, waitFor, run);
+        var times = 4;
+        var done = false;
+        for(i = 0; i < times; i++){
+          createVisit({});
+        }
+        Visit.count(function(c){
+          count = c;
+          done = true;
+        });
+        waitsFor(function () {
+          return done;
+        });
+        runs(function (){
+          expect(count).toEqual(times);
+        });
       });
     });
 
     describe("getByDate", function(){
       it("should return items within the specified dates", function(){
-        var waitFor, run, index2, index3, visitsByDate, bound;
+        var visitsByDate, visit2, visit3;
         var start = 1000000000004;
         var end = 1000000000007;
 
-        waitFor = function(err, result){
+        createVisit({visitTime:1000000000000 });
+        visit2 = createVisit({visitTime:1000000000005 });
+        visit3 = createVisit({visitTime:1000000000006 });
+        createVisit({visitTime:10000000000010 });
+        Visit.getByDate(start, end, function(err, result){
           visitsByDate = result;
-        };
-        run = function(){
+        });
+        waitsFor(function(){
+          return visitsByDate;
+        });
+        runs(function(){
           expect(visitsByDate.some(function(v){
             return v.visitTime === visit2.visitTime})).toBeTruthy();
           expect(visitsByDate.some(function(v){return v.visitTime === visit3.visitTime})).toBeTruthy();
           expect(visitsByDate.length).toEqual(2);
-        };
-
-        var bound = Visit.getByDate.bind(Visit, start, end);
-        asyncHelper(bound, waitFor, run);
+        });
       });
     });
 
     describe("getChildren", function() {
       it("should return an array of the child visit objects when children have not been loaded", function() {
-        var children;
-        var done = false;
+        var children, visit, visit2, visit3;
+        visit2 = createVisit({id: 2});
+        visit3 = createVisit({id: 3});
+        visit = new Visit({});
         visit.childrenIds = [visit2.id, visit3.id];
         visit.getChildren(function(c){
           children = c;
-          done = true;
         });
         waitsFor(function(){
-          return done;
+          return children;
         }, "children to be returned from the database", 50);
         runs(function(){
           expect(
@@ -222,3 +211,9 @@ describe("Visit", function() {
     });
   });
 });
+
+function createVisit(obj){
+  var visit = new Visit(obj);
+  visit.save();
+  return visit;
+}
