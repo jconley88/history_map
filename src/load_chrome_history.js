@@ -90,8 +90,7 @@ function historyData() {
     async.series([
       setAbandonedBaseVisits,
       sortBaseVisits,
-      nestChildren,
-      save
+      nestChildren
     ],
       function(err, results){
         callback(null, self);
@@ -107,11 +106,6 @@ function historyData() {
     }
 //    baseVisits = mergeIdenticalBaseVisits();
     callback(null, self);
-  }
-  function save(){
-    baseVisits.each(function(v){
-      v.save()
-    });
   }
 
   function setAbandonedBaseVisits(callback){
@@ -153,6 +147,7 @@ function historyData() {
       }
       base.setChildren(children);
     }
+    base.save();
   }
   function sortBaseVisits(callback) {
     //TODO update to sort this by the time of the most recently accessed page in this session

@@ -52,6 +52,10 @@ img {
   -webkit-padding-start: 20px;
   background-position-y: 1px;
   background-repeat: no-repeat;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 600px;
 }
 
 .entry .title a {
